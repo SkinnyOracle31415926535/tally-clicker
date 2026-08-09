@@ -1236,10 +1236,6 @@
       display: none;
     }
 
-    #listPanel:not(.is-viewing) .list-table-wrap {
-      display: none;
-    }
-
     .list-table-window-header {
       display: flex;
       justify-content: flex-end;
@@ -1261,8 +1257,8 @@
       order: 1;
     }
 
-    body.list-table-window-open .window {
-      filter: blur(8px);
+    .list-table-window-content .list-table {
+      filter: blur(3px);
     }
 
     @media (orientation: landscape) {
