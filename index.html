@@ -2747,6 +2747,13 @@
             <tbody id="listTableBody"></tbody>
           </table>
         </div>
+        <div class="todo-mode-actions">
+          <button id="listViewButton" type="button" aria-pressed="false">view</button>
+          <div class="todo-history-actions" aria-label="TODO history">
+            <button id="todoUndoButton" type="button" disabled>undo</button>
+            <button id="todoRedoButton" type="button" disabled>redo</button>
+          </div>
+        </div>
         <div class="single-settings todo-sound-setting">
           <label class="single-setting" for="increasePitchTodo">
             <input id="increasePitchTodo" type="checkbox">
@@ -2758,14 +2765,6 @@
         <div class="list-actions">
           <button id="addSkill" type="button">add skill</button>
           <button id="editTodo" type="button" aria-pressed="false">edit</button>
-        </div>
-
-        <div class="todo-mode-actions">
-          <button id="listViewButton" type="button" aria-pressed="false">view</button>
-          <div class="todo-history-actions" aria-label="TODO history">
-            <button id="todoUndoButton" type="button" disabled>undo</button>
-            <button id="todoRedoButton" type="button" disabled>redo</button>
-          </div>
         </div>
 
         <select id="listSelector" class="list-select" aria-label="Choose a TODO"></select>
