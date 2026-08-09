@@ -1221,6 +1221,40 @@
       border: 4px solid var(--black);
     }
 
+    .list-table-window {
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      gap: 10px;
+      padding: 14px;
+      background: var(--green);
+    }
+
+    .list-table-window[hidden] {
+      display: none;
+    }
+
+    .list-table-window-header {
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    #closeListTableWindow {
+      min-width: 56px;
+      min-height: 48px;
+      padding: 4px 14px;
+      font-size: 32px;
+      line-height: 1;
+    }
+
+    .list-table-window-content {
+      min-height: 0;
+      overflow: auto;
+      border: 4px solid var(--black);
+    }
+
     .list-table {
       width: 100%;
       min-width: 440px;
@@ -2716,7 +2750,7 @@
       </section>
 
       <section id="listPanel" class="panel" aria-label="Skill TODO run-throughs">
-        <div id="listCurrentSkillBox" class="run-current-skill todo-run-only" aria-live="polite" role="button" tabindex="0" aria-label="Open skill table">
+        <div id="listCurrentSkillBox" class="run-current-skill todo-run-only" aria-live="polite" role="button" tabindex="0" aria-label="Open skill table window">
           <div class="run-current-label">current skill</div>
           <div id="listCurrentSkill" class="run-current-name">no todo selected</div>
         </div>
@@ -2746,11 +2780,17 @@
           </label>
         </div>
         <div id="listClassSlot" class="class-roster-slot"></div>
-        <div class="list-table-wrap">
+        <div id="listTableWrap" class="list-table-wrap">
           <table class="list-table">
             <thead id="listTableHead"></thead>
             <tbody id="listTableBody"></tbody>
           </table>
+        </div>
+        <div id="listTableWindow" class="list-table-window" role="dialog" aria-modal="true" aria-label="Skill table" hidden>
+          <div class="list-table-window-header">
+            <button id="closeListTableWindow" type="button" aria-label="Close skill table">×</button>
+          </div>
+          <div id="listTableWindowContent" class="list-table-window-content"></div>
         </div>
 
         <div class="list-actions">
@@ -3262,6 +3302,10 @@
     const listProgressFill = document.getElementById("listProgressFill");
     const listCurrentSkill = document.getElementById("listCurrentSkill");
     const listCurrentSkillBox = document.getElementById("listCurrentSkillBox");
+    const listTableWrap = document.getElementById("listTableWrap");
+    const listTableWindow = document.getElementById("listTableWindow");
+    const listTableWindowContent = document.getElementById("listTableWindowContent");
+    const closeListTableWindow = document.getElementById("closeListTableWindow");
     const listCurrentCount = document.getElementById("listCurrentCount");
     const listCurrentTarget = document.getElementById("listCurrentTarget");
     const listSuccess = document.getElementById("listSuccess");
@@ -5525,6 +5569,18 @@
       statusbar.textContent = viewing ? "TODO view ready" : "TODO ready";
     }
 
+    function openListTableWindow() {
+      const table = listTableWrap.querySelector(".list-table");
+      listTableWindowContent.replaceChildren(table.cloneNode(true));
+      listTableWindow.hidden = false;
+      closeListTableWindow.focus();
+    }
+
+    function closeSkillTableWindow() {
+      listTableWindow.hidden = true;
+      listCurrentSkillBox.focus();
+    }
+
     function cancelTodoViewExitHold() {
       window.clearTimeout(todoViewExitTimer);
       todoViewExitTimer = null;
@@ -6995,21 +7051,13 @@
     addSkill.addEventListener("click", openAddSkillDialog);
     editTodo.addEventListener("click", () => setListEditing(!isListEditing));
     listViewButton.addEventListener("click", () => setListViewing(true));
-    let lastCurrentSkillTap = 0;
-    listCurrentSkillBox.addEventListener("pointerup", () => {
-      const now = performance.now();
-      if (now - lastCurrentSkillTap < 420) {
-        lastCurrentSkillTap = 0;
-        setListViewing(true);
-        return;
-      }
-      lastCurrentSkillTap = now;
-    });
+    listCurrentSkillBox.addEventListener("click", openListTableWindow);
     listCurrentSkillBox.addEventListener("keydown", (event) => {
       if (event.key !== "Enter" && event.key !== " ") return;
       event.preventDefault();
-      setListViewing(true);
+      openListTableWindow();
     });
+    closeListTableWindow.addEventListener("click", closeSkillTableWindow);
     todoScoresButton.addEventListener("click", () => {
       areTodoScoresHidden = !areTodoScoresHidden;
       renderList();
