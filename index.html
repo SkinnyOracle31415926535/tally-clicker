@@ -1229,9 +1229,7 @@
       grid-template-rows: minmax(0, 1fr) auto;
       gap: 10px;
       padding: 14px;
-      background: rgba(138, 206, 0, 0.78);
-      -webkit-backdrop-filter: blur(8px);
-      backdrop-filter: blur(8px);
+      background: rgba(138, 206, 0, 0.55);
     }
 
     .list-table-window[hidden] {
@@ -1263,8 +1261,8 @@
       order: 1;
     }
 
-    .list-table-window-content .list-table {
-      filter: blur(3px);
+    body.list-table-window-open .window {
+      filter: blur(8px);
     }
 
     @media (orientation: landscape) {
@@ -3321,6 +3319,7 @@
     const listTableWindow = document.getElementById("listTableWindow");
     const listTableWindowContent = document.getElementById("listTableWindowContent");
     const closeListTableWindow = document.getElementById("closeListTableWindow");
+    document.body.append(listTableWindow);
     const listCurrentCount = document.getElementById("listCurrentCount");
     const listCurrentTarget = document.getElementById("listCurrentTarget");
     const listSuccess = document.getElementById("listSuccess");
@@ -5589,11 +5588,13 @@
       const table = listTableWrap.querySelector(".list-table");
       listTableWindowContent.replaceChildren(table.cloneNode(true));
       listTableWindow.hidden = false;
+      document.body.classList.add("list-table-window-open");
       closeListTableWindow.focus();
     }
 
     function closeSkillTableWindow() {
       listTableWindow.hidden = true;
+      document.body.classList.remove("list-table-window-open");
       listCurrentSkillBox.focus();
     }
 
