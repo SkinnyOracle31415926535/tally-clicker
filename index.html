@@ -2351,6 +2351,40 @@
       filter: none;
     }
 
+    @media (min-width: 700px) and (min-height: 600px) {
+      #listPanel.is-viewing {
+        grid-template-columns: minmax(0, 1.5fr) minmax(260px, 0.8fr);
+        grid-template-rows: auto auto minmax(0, 1fr) auto;
+      }
+
+      #listPanel.is-viewing .run-current-skill,
+      #listPanel.is-viewing .run-summary {
+        grid-column: 1;
+      }
+
+      #listPanel.is-viewing .current-skill {
+        display: none;
+      }
+
+      #listPanel.is-viewing .list-table-wrap {
+        grid-column: 1;
+        grid-row: 3;
+      }
+
+      #listPanel.is-viewing .list-controls {
+        grid-column: 2;
+        grid-row: 1 / 4;
+        grid-template-columns: 1fr;
+        grid-template-rows: minmax(0, 1fr) auto auto;
+        align-content: start;
+      }
+
+      #listPanel.is-viewing .todo-practice-footer {
+        grid-column: 1 / -1;
+        grid-row: 4;
+      }
+    }
+
     @media (max-width: 560px) {
       body {
         padding: 6px;
