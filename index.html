@@ -2351,10 +2351,6 @@
       filter: none;
     }
 
-    #listPanel:not(.is-viewing) .list-table-wrap {
-      order: -1;
-    }
-
     @media (max-width: 560px) {
       body {
         padding: 6px;
@@ -2745,6 +2741,12 @@
           <button id="listMinus" class="minus" type="button" aria-label="Remove one repetition from the current skill">−</button>
           <button id="resetCurrentSkill" class="clear" type="button">reset</button>
         </div>
+        <div class="list-table-wrap">
+          <table class="list-table">
+            <thead id="listTableHead"></thead>
+            <tbody id="listTableBody"></tbody>
+          </table>
+        </div>
         <div class="single-settings todo-sound-setting">
           <label class="single-setting" for="increasePitchTodo">
             <input id="increasePitchTodo" type="checkbox">
@@ -2752,13 +2754,6 @@
           </label>
         </div>
         <div id="listClassSlot" class="class-roster-slot"></div>
-
-        <div class="list-table-wrap">
-          <table class="list-table">
-            <thead id="listTableHead"></thead>
-            <tbody id="listTableBody"></tbody>
-          </table>
-        </div>
 
         <div class="list-actions">
           <button id="addSkill" type="button">add skill</button>
