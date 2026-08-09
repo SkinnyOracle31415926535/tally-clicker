@@ -1400,16 +1400,81 @@
     #listPanel.is-viewing {
       min-height: 0;
       overflow: hidden;
-      grid-template-rows: auto minmax(0, 1fr);
+      grid-template-rows: auto auto auto minmax(110px, 1fr) auto minmax(92px, 1.3fr);
       gap: 8px;
     }
 
-    #listPanel.is-viewing > :not(.list-table-wrap):not(.todo-practice-footer) {
+    #listPanel.is-viewing > :not(.todo-run-only):not(.list-table-wrap):not(.todo-practice-footer) {
       display: none !important;
     }
 
-    #listPanel.is-viewing .list-table-wrap {
+    #listPanel.is-viewing .run-current-skill {
       order: 2;
+      padding: 7px;
+    }
+
+    #listPanel.is-viewing .run-current-name {
+      font-size: clamp(20px, 4.5vh, 36px);
+    }
+
+    #listPanel.is-viewing .run-summary {
+      order: 3;
+      gap: 5px;
+      padding: 7px;
+    }
+
+    #listPanel.is-viewing .run-summary-line {
+      font-size: clamp(18px, 3.6vh, 30px);
+    }
+
+    #listPanel.is-viewing .progress-track {
+      height: 18px;
+      border-width: 3px;
+    }
+
+    #listPanel.is-viewing .current-skill {
+      order: 4;
+      min-height: 110px;
+      padding: 6px;
+    }
+
+    #listPanel.is-viewing .current-skill-count {
+      font-size: clamp(62px, 16vh, 124px);
+    }
+
+    #listPanel.is-viewing .current-skill-target {
+      right: 10px;
+      bottom: 8px;
+      font-size: clamp(24px, 5vh, 42px);
+    }
+
+    #listPanel.is-viewing #listSuccess {
+      display: none !important;
+    }
+
+    #listPanel.is-viewing .list-controls {
+      order: 5;
+      gap: 6px;
+    }
+
+    #listPanel.is-viewing .list-controls .plus,
+    #listPanel.is-viewing .list-controls .minus {
+      min-height: 58px;
+      font-size: clamp(32px, 7vh, 52px);
+    }
+
+    #listPanel.is-viewing .list-controls .plus {
+      min-height: 0;
+      aspect-ratio: 1;
+    }
+
+    #listPanel.is-viewing .list-controls .clear {
+      min-height: 52px;
+      font-size: clamp(18px, 3.5vh, 28px);
+    }
+
+    #listPanel.is-viewing .list-table-wrap {
+      order: 6;
       min-height: 0;
       overflow: auto;
       overscroll-behavior: contain;
