@@ -1403,7 +1403,7 @@
     #listPanel.is-viewing {
       min-height: 0;
       overflow: hidden;
-      grid-template-rows: auto auto minmax(110px, 1fr) auto minmax(92px, 1.3fr) auto;
+      grid-template-rows: auto auto minmax(110px, 1fr) minmax(92px, 1.3fr) auto auto;
       gap: 8px;
     }
 
@@ -1456,7 +1456,7 @@
     }
 
     #listPanel.is-viewing .list-controls {
-      order: 4;
+      order: 5;
       gap: 6px;
     }
 
@@ -1477,7 +1477,7 @@
     }
 
     #listPanel.is-viewing .list-table-wrap {
-      order: 5;
+      order: 4;
       min-height: 0;
       overflow: auto;
       overscroll-behavior: contain;
@@ -2556,7 +2556,7 @@
       }
 
       #listPanel.is-viewing {
-        grid-template-rows: auto auto minmax(50px, 1fr) auto minmax(58px, 0.9fr) auto;
+        grid-template-rows: auto auto minmax(50px, 1fr) minmax(58px, 0.9fr) auto auto;
         gap: 4px;
       }
 
