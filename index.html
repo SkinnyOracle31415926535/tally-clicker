@@ -1400,7 +1400,7 @@
     #listPanel.is-viewing {
       min-height: 0;
       overflow: hidden;
-      grid-template-rows: auto auto auto minmax(110px, 1fr) auto minmax(92px, 1.3fr);
+      grid-template-rows: auto auto minmax(110px, 1fr) auto minmax(92px, 1.3fr) auto;
       gap: 8px;
     }
 
@@ -1409,7 +1409,7 @@
     }
 
     #listPanel.is-viewing .run-current-skill {
-      order: 2;
+      order: 1;
       padding: 7px;
     }
 
@@ -1418,7 +1418,7 @@
     }
 
     #listPanel.is-viewing .run-summary {
-      order: 3;
+      order: 2;
       gap: 5px;
       padding: 7px;
     }
@@ -1433,7 +1433,7 @@
     }
 
     #listPanel.is-viewing .current-skill {
-      order: 4;
+      order: 3;
       min-height: 110px;
       padding: 6px;
     }
@@ -1453,7 +1453,7 @@
     }
 
     #listPanel.is-viewing .list-controls {
-      order: 5;
+      order: 4;
       gap: 6px;
     }
 
@@ -1474,21 +1474,17 @@
     }
 
     #listPanel.is-viewing .list-table-wrap {
-      order: 6;
+      order: 5;
       min-height: 0;
       overflow: auto;
       overscroll-behavior: contain;
     }
 
     #listPanel.is-viewing .todo-practice-footer {
-      order: 1;
+      order: 6;
       display: grid;
-      grid-template-columns: minmax(0, 1fr);
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 8px;
-    }
-
-    #listPanel.is-viewing .todo-practice-footer > :not(#exitTodoView) {
-      display: none;
     }
 
     #listPanel.is-viewing .todo-practice-footer button {
@@ -2778,9 +2774,9 @@
           <button id="resetTodo" class="todo-reset" type="button">reset all</button>
         </div>
         <div id="todoPracticeFooter" class="todo-practice-footer" hidden>
-          <button id="exitTodoView" type="button" aria-label="Exit skill table">×</button>
           <button id="todoPracticeUndo" type="button" disabled>undo</button>
           <button id="todoScoresButton" type="button" aria-pressed="false">hide scores</button>
+          <button id="exitTodoView" class="hold-to-exit" type="button">hold to exit view</button>
         </div>
       </section>
 
@@ -3361,6 +3357,7 @@
     let todoRedoStack = [];
     let todoActionConfirmationKey = null;
     let todoActionConfirmationTimer = null;
+    let todoViewExitTimer = null;
     let stopwatchUndoStack = [];
     let stopwatchRedoStack = [];
     let audioContext = null;
@@ -5515,6 +5512,7 @@
     }
 
     function setListViewing(viewing) {
+      cancelTodoViewExitHold();
       clearTodoActionConfirmation();
       if (viewing && !getSelectedList()) {
         statusbar.textContent = "make a TODO first";
@@ -5525,6 +5523,27 @@
       draggedSkillId = null;
       renderList();
       statusbar.textContent = viewing ? "TODO view ready" : "TODO ready";
+    }
+
+    function cancelTodoViewExitHold() {
+      window.clearTimeout(todoViewExitTimer);
+      todoViewExitTimer = null;
+      exitTodoView.classList.remove("holding");
+      exitTodoView.textContent = "hold to exit view";
+    }
+
+    function exitTodoViewAfterHold() {
+      cancelTodoViewExitHold();
+      if (state.mode !== "list" || !isListViewing) return;
+      setListViewing(false);
+      window.requestAnimationFrame(() => listViewButton.focus());
+    }
+
+    function beginTodoViewExitHold() {
+      if (state.mode !== "list" || !isListViewing || todoViewExitTimer) return;
+      exitTodoView.classList.add("holding");
+      exitTodoView.textContent = "keep holding...";
+      todoViewExitTimer = window.setTimeout(exitTodoViewAfterHold, 1200);
     }
 
     function moveSkillRelative(sourceId, targetId, insertAfter) {
@@ -5622,6 +5641,7 @@
       }
       const isPracticeView = state.mode === "list" && isListViewing;
       const shouldHideTodoScores = isPracticeView && areTodoScoresHidden;
+      if (!isPracticeView) cancelTodoViewExitHold();
       listPanel.classList.toggle("is-editing", isListEditing);
       listPanel.classList.toggle("is-viewing", isPracticeView);
       document.body.classList.toggle("todo-practice-view", isPracticeView);
@@ -6995,7 +7015,27 @@
       renderList();
       statusbar.textContent = areTodoScoresHidden ? "TODO scores hidden" : "TODO scores revealed";
     });
-    exitTodoView.addEventListener("click", () => setListViewing(false));
+    exitTodoView.addEventListener("pointerdown", (event) => {
+      event.preventDefault();
+      exitTodoView.setPointerCapture?.(event.pointerId);
+      beginTodoViewExitHold();
+    });
+    ["pointerup", "pointercancel", "pointerleave", "lostpointercapture"].forEach((eventName) => {
+      exitTodoView.addEventListener(eventName, cancelTodoViewExitHold);
+    });
+    exitTodoView.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      if (!event.repeat) beginTodoViewExitHold();
+    });
+    exitTodoView.addEventListener("keyup", (event) => {
+      if (event.key === "Enter" || event.key === " ") cancelTodoViewExitHold();
+    });
+    exitTodoView.addEventListener("click", (event) => event.preventDefault());
+    window.addEventListener("blur", cancelTodoViewExitHold);
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) cancelTodoViewExitHold();
+    });
     listPlus.addEventListener("click", () => changeCurrentSkill(1));
     listMinus.addEventListener("click", () => {
       if (!listMinus.disabled) armOrConfirmTodoAction("minus", "−", () => changeCurrentSkill(-1));
