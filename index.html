@@ -1034,6 +1034,19 @@
       justify-content: flex-end;
     }
 
+    .todo-sound-setting {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .todo-sound-setting #listViewButton {
+      min-height: 48px;
+      padding: 7px 10px;
+      font-size: 20px;
+      text-transform: lowercase;
+    }
+
     .single-setting {
       min-height: 48px;
       display: inline-flex;
@@ -1388,10 +1401,6 @@
       overflow: hidden;
       grid-template-rows: auto minmax(0, 1fr);
       gap: 8px;
-    }
-
-    #listPanel:not(.is-viewing) .list-table-wrap {
-      display: none;
     }
 
     #listPanel.is-viewing > :not(.list-table-wrap):not(.todo-practice-footer) {
@@ -2667,19 +2676,20 @@
           <button id="listMinus" class="minus" type="button" aria-label="Remove one repetition from the current skill">−</button>
           <button id="resetCurrentSkill" class="clear" type="button">reset</button>
         </div>
-        <div class="list-table-wrap">
-          <table class="list-table">
-            <thead id="listTableHead"></thead>
-            <tbody id="listTableBody"></tbody>
-          </table>
-        </div>
-        <div class="single-settings todo-sound-setting">
+        <div class="todo-sound-setting">
+          <button id="listViewButton" type="button" aria-pressed="false">view</button>
           <label class="single-setting" for="increasePitchTodo">
             <input id="increasePitchTodo" type="checkbox">
             increase pitch
           </label>
         </div>
         <div id="listClassSlot" class="class-roster-slot"></div>
+        <div class="list-table-wrap">
+          <table class="list-table">
+            <thead id="listTableHead"></thead>
+            <tbody id="listTableBody"></tbody>
+          </table>
+        </div>
 
         <div class="list-actions">
           <button id="addSkill" type="button">add skill</button>
@@ -3199,6 +3209,7 @@
     const resetTodo = document.getElementById("resetTodo");
     const todoUndoButton = document.getElementById("todoUndoButton");
     const todoRedoButton = document.getElementById("todoRedoButton");
+    const listViewButton = document.getElementById("listViewButton");
     const todoPracticeFooter = document.getElementById("todoPracticeFooter");
     const todoPracticeUndo = document.getElementById("todoPracticeUndo");
     const todoScoresButton = document.getElementById("todoScoresButton");
@@ -4858,12 +4869,11 @@
         ? singleClassSlot
         : state.mode === "multiple"
           ? multipleClassSlot
-          : state.mode === "list"
-            ? listClassSlot
-            : state.mode === "streak"
+          : state.mode === "streak"
               ? streakClassSlot
               : stopwatchClassSlot;
-      if (classRosterPanel.parentElement !== classSlot) classSlot.appendChild(classRosterPanel);
+      if (state.mode !== "list" && classRosterPanel.parentElement !== classSlot) classSlot.appendChild(classRosterPanel);
+      classRosterPanel.hidden = state.mode === "list";
 
       modeButtons.forEach((button) => {
         const active = button.dataset.mode === state.mode;
@@ -5552,6 +5562,8 @@
       editTodo.disabled = !hasList;
       editTodo.textContent = isListEditing ? "done" : "edit";
       editTodo.setAttribute("aria-pressed", isListEditing ? "true" : "false");
+      listViewButton.disabled = !hasList;
+      listViewButton.setAttribute("aria-pressed", String(isPracticeView));
       todoPracticeFooter.hidden = !isPracticeView;
       todoScoresButton.textContent = areTodoScoresHidden ? "reveal scores" : "hide scores";
       todoScoresButton.setAttribute("aria-pressed", String(areTodoScoresHidden));
@@ -6896,6 +6908,7 @@
     deleteList.addEventListener("click", openDeleteListDialog);
     addSkill.addEventListener("click", openAddSkillDialog);
     editTodo.addEventListener("click", () => setListEditing(!isListEditing));
+    listViewButton.addEventListener("click", () => setListViewing(true));
     let lastCurrentSkillTap = 0;
     listCurrentSkillBox.addEventListener("pointerup", () => {
       const now = performance.now();
