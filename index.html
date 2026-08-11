@@ -1034,6 +1034,20 @@
       justify-content: flex-end;
     }
 
+    .todo-sound-setting {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .todo-sound-setting #listViewButton {
+      flex: 1;
+      min-height: 48px;
+      padding: 7px 10px;
+      font-size: 20px;
+      text-transform: lowercase;
+    }
+
     .single-setting {
       min-height: 48px;
       display: inline-flex;
@@ -1098,8 +1112,8 @@
 
     .run-summary {
       display: grid;
-      gap: 8px;
-      padding: 12px;
+      gap: 4px;
+      padding: 8px;
       color: var(--black);
       background: var(--green);
       border: 4px solid var(--black);
@@ -1107,7 +1121,7 @@
     }
 
     .run-summary-line {
-      font-size: clamp(22px, 6vw, 34px);
+      font-size: clamp(18px, 4vw, 26px);
       font-weight: 500;
       line-height: 0.95;
       text-transform: lowercase;
@@ -1116,22 +1130,24 @@
     .run-current-skill {
       display: grid;
       gap: 3px;
-      padding: 12px;
+      padding: 8px;
       color: var(--black);
       background: var(--green);
       border: 4px solid var(--black);
       text-shadow: 0 0 1.6px rgba(5, 5, 5, 0.46);
+      cursor: pointer;
+      touch-action: manipulation;
     }
 
     .run-current-label {
-      font-size: 16px;
+      font-size: 14px;
       font-weight: 500;
       line-height: 1;
       text-transform: lowercase;
     }
 
     .run-current-name {
-      font-size: clamp(24px, 7vw, 42px);
+      font-size: clamp(20px, 5vw, 30px);
       font-weight: 500;
       line-height: 0.92;
       overflow-wrap: anywhere;
@@ -1139,7 +1155,7 @@
     }
 
     .progress-track {
-      height: 28px;
+      height: 20px;
       overflow: hidden;
       background: var(--green);
       border: 4px solid var(--black);
@@ -1203,6 +1219,56 @@
       overflow-x: auto;
       overflow-y: hidden;
       border: 4px solid var(--black);
+    }
+
+    .list-table-window {
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+      display: grid;
+      grid-template-rows: minmax(0, 1fr) auto;
+      gap: 10px;
+      padding: 14px;
+      background: rgba(138, 206, 0, 0.55);
+    }
+
+    .list-table-window[hidden] {
+      display: none;
+    }
+
+    .list-table-window-header {
+      display: flex;
+      justify-content: flex-end;
+      order: 2;
+    }
+
+    #closeListTableWindow {
+      min-width: 56px;
+      min-height: 48px;
+      padding: 4px 14px;
+      font-size: 32px;
+      line-height: 1;
+    }
+
+    .list-table-window-content {
+      min-height: 0;
+      overflow: auto;
+      border: 4px solid var(--black);
+      order: 1;
+    }
+
+    .list-table-window-content .list-table {
+      filter: blur(1px);
+    }
+
+    body.list-table-window-open .ryan-semantic-sync-open {
+      display: none;
+    }
+
+    @media (orientation: landscape) {
+      .list-table-window-content .skill-progress {
+        font-size: clamp(18px, 3.5vw, 44px);
+      }
     }
 
     .list-table {
@@ -1309,21 +1375,7 @@
       gap: 8px;
     }
 
-    .todo-mode-actions {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 8px;
-    }
-
-    .todo-mode-actions > button {
-      min-height: 60px;
-      padding: 8px 12px;
-      font-size: 24px;
-      text-transform: lowercase;
-    }
-
-    .multiple-controls .multiple-action.is-active,
-    .todo-mode-actions #listViewButton.is-active {
+    .multiple-controls .multiple-action.is-active {
       color: var(--green);
       background: var(--black);
     }
@@ -1398,11 +1450,11 @@
     #listPanel.is-viewing {
       min-height: 0;
       overflow: hidden;
-      grid-template-rows: auto auto minmax(110px, 1fr) auto minmax(92px, 1.3fr) auto;
+      grid-template-rows: auto auto minmax(110px, 1fr) auto auto;
       gap: 8px;
     }
 
-    #listPanel.is-viewing > :not(.todo-run-only):not(.list-table-wrap):not(.todo-practice-footer) {
+    #listPanel.is-viewing > :not(.todo-run-only):not(.todo-practice-footer):not(.list-table-window) {
       display: none !important;
     }
 
@@ -1461,20 +1513,22 @@
       font-size: clamp(32px, 7vh, 52px);
     }
 
+    #listPanel.is-viewing .list-controls .plus {
+      min-height: 0;
+      aspect-ratio: 1;
+    }
+
     #listPanel.is-viewing .list-controls .clear {
       min-height: 52px;
       font-size: clamp(18px, 3.5vh, 28px);
     }
 
     #listPanel.is-viewing .list-table-wrap {
-      order: 5;
-      min-height: 0;
-      overflow: auto;
-      overscroll-behavior: contain;
+      display: none;
     }
 
     #listPanel.is-viewing .todo-practice-footer {
-      order: 6;
+      order: 5;
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 8px;
@@ -2546,7 +2600,7 @@
       }
 
       #listPanel.is-viewing {
-        grid-template-rows: auto auto minmax(50px, 1fr) auto minmax(58px, 0.9fr) auto;
+        grid-template-rows: auto auto minmax(50px, 1fr) auto auto;
         gap: 4px;
       }
 
@@ -2632,7 +2686,6 @@
   <!-- Gymnastics Vault icon -->
   <link rel="icon" type="image/png" href="icon.png">
   <link rel="apple-touch-icon" sizes="180x180" href="icon.png">
-  <meta name="theme-color" content="#0b4f32">
 </head>
 <body>
   <main class="window" aria-label="Tally Clicker">
@@ -2710,7 +2763,7 @@
       </section>
 
       <section id="listPanel" class="panel" aria-label="Skill TODO run-throughs">
-        <div class="run-current-skill todo-run-only" aria-live="polite">
+        <div id="listCurrentSkillBox" class="run-current-skill todo-run-only" aria-live="polite" role="button" tabindex="0" aria-label="Open skill table window">
           <div class="run-current-label">current skill</div>
           <div id="listCurrentSkill" class="run-current-name">no todo selected</div>
         </div>
@@ -2732,32 +2785,34 @@
           <button id="listMinus" class="minus" type="button" aria-label="Remove one repetition from the current skill">−</button>
           <button id="resetCurrentSkill" class="clear" type="button">reset</button>
         </div>
-        <div class="single-settings todo-sound-setting">
+        <div class="todo-sound-setting">
+          <button id="listViewButton" type="button" aria-pressed="false">view</button>
           <label class="single-setting" for="increasePitchTodo">
             <input id="increasePitchTodo" type="checkbox">
             increase pitch
           </label>
         </div>
         <div id="listClassSlot" class="class-roster-slot"></div>
-
-        <div class="list-table-wrap">
+        <div id="listTableWrap" class="list-table-wrap">
           <table class="list-table">
             <thead id="listTableHead"></thead>
             <tbody id="listTableBody"></tbody>
           </table>
+        </div>
+        <div id="listTableWindow" class="list-table-window" role="dialog" aria-modal="true" aria-label="Skill table" hidden>
+          <div class="list-table-window-header">
+            <button id="closeListTableWindow" type="button" aria-label="Close skill table">×</button>
+          </div>
+          <div id="listTableWindowContent" class="list-table-window-content"></div>
         </div>
 
         <div class="list-actions">
           <button id="addSkill" type="button">add skill</button>
           <button id="editTodo" type="button" aria-pressed="false">edit</button>
         </div>
-
-        <div class="todo-mode-actions">
-          <button id="listViewButton" type="button" aria-pressed="false">view</button>
-          <div class="todo-history-actions" aria-label="TODO history">
-            <button id="todoUndoButton" type="button" disabled>undo</button>
-            <button id="todoRedoButton" type="button" disabled>redo</button>
-          </div>
+        <div class="todo-history-actions" aria-label="TODO history">
+          <button id="todoUndoButton" type="button" disabled>undo</button>
+          <button id="todoRedoButton" type="button" disabled>redo</button>
         </div>
 
         <select id="listSelector" class="list-select" aria-label="Choose a TODO"></select>
@@ -3259,6 +3314,12 @@
     const listProgressText = document.getElementById("listProgressText");
     const listProgressFill = document.getElementById("listProgressFill");
     const listCurrentSkill = document.getElementById("listCurrentSkill");
+    const listCurrentSkillBox = document.getElementById("listCurrentSkillBox");
+    const listTableWrap = document.getElementById("listTableWrap");
+    const listTableWindow = document.getElementById("listTableWindow");
+    const listTableWindowContent = document.getElementById("listTableWindowContent");
+    const closeListTableWindow = document.getElementById("closeListTableWindow");
+    document.body.append(listTableWindow);
     const listCurrentCount = document.getElementById("listCurrentCount");
     const listCurrentTarget = document.getElementById("listCurrentTarget");
     const listSuccess = document.getElementById("listSuccess");
@@ -4929,12 +4990,11 @@
         ? singleClassSlot
         : state.mode === "multiple"
           ? multipleClassSlot
-          : state.mode === "list"
-            ? listClassSlot
-            : state.mode === "streak"
+          : state.mode === "streak"
               ? streakClassSlot
               : stopwatchClassSlot;
-      if (classRosterPanel.parentElement !== classSlot) classSlot.appendChild(classRosterPanel);
+      if (state.mode !== "list" && classRosterPanel.parentElement !== classSlot) classSlot.appendChild(classRosterPanel);
+      classRosterPanel.hidden = state.mode === "list";
 
       modeButtons.forEach((button) => {
         const active = button.dataset.mode === state.mode;
@@ -5506,7 +5566,7 @@
       if (editing) isListViewing = false;
       draggedSkillId = null;
       renderList();
-      statusbar.textContent = editing ? "hide or reorder skills" : "TODO ready";
+      statusbar.textContent = editing ? "edit, hide, or reorder skills" : "TODO ready";
     }
 
     function setListViewing(viewing) {
@@ -5521,6 +5581,21 @@
       draggedSkillId = null;
       renderList();
       statusbar.textContent = viewing ? "TODO view ready" : "TODO ready";
+    }
+
+    function openListTableWindow() {
+      if (!isListViewing) return;
+      const table = listTableWrap.querySelector(".list-table");
+      listTableWindowContent.replaceChildren(table.cloneNode(true));
+      listTableWindow.hidden = false;
+      document.body.classList.add("list-table-window-open");
+      closeListTableWindow.focus();
+    }
+
+    function closeSkillTableWindow() {
+      listTableWindow.hidden = true;
+      document.body.classList.remove("list-table-window-open");
+      listCurrentSkillBox.focus();
     }
 
     function cancelTodoViewExitHold() {
@@ -5592,6 +5667,12 @@
       reps.textContent = skill.completed + " / " + skill.reps;
       const actions = document.createElement("td");
       actions.className = "skill-edit-actions";
+      const editButton = document.createElement("button");
+      editButton.type = "button";
+      editButton.className = "skill-order-button";
+      editButton.textContent = "edit";
+      editButton.setAttribute("aria-label", "Edit " + skill.name);
+      editButton.addEventListener("click", () => openSkillEditDialog(skill.id));
       const visibilityButton = document.createElement("button");
       visibilityButton.type = "button";
       visibilityButton.className = "skill-order-button";
@@ -5618,7 +5699,7 @@
       moveDown.title = skillIndex === skillCount - 1 ? skill.name + " is already last" : "Move " + skill.name + " down";
       moveDown.addEventListener("click", () => moveSkillByOffset(skill.id, 1));
       orderActions.append(moveUp, moveDown);
-      actions.append(visibilityButton, orderActions);
+      actions.append(editButton, visibilityButton, orderActions);
       row.append(name, reps, actions);
       listTableBody.appendChild(row);
     }
@@ -5647,8 +5728,9 @@
       editTodo.textContent = isListEditing ? "done" : "edit";
       editTodo.setAttribute("aria-pressed", isListEditing ? "true" : "false");
       listViewButton.disabled = !hasList;
-      listViewButton.classList.toggle("is-active", isPracticeView);
       listViewButton.setAttribute("aria-pressed", String(isPracticeView));
+      listCurrentSkillBox.tabIndex = isPracticeView ? 0 : -1;
+      listCurrentSkillBox.setAttribute("aria-disabled", String(!isPracticeView));
       todoPracticeFooter.hidden = !isPracticeView;
       todoScoresButton.textContent = areTodoScoresHidden ? "reveal scores" : "hide scores";
       todoScoresButton.setAttribute("aria-pressed", String(areTodoScoresHidden));
@@ -6994,6 +7076,13 @@
     addSkill.addEventListener("click", openAddSkillDialog);
     editTodo.addEventListener("click", () => setListEditing(!isListEditing));
     listViewButton.addEventListener("click", () => setListViewing(true));
+    listCurrentSkillBox.addEventListener("click", openListTableWindow);
+    listCurrentSkillBox.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      openListTableWindow();
+    });
+    closeListTableWindow.addEventListener("click", closeSkillTableWindow);
     todoScoresButton.addEventListener("click", () => {
       areTodoScoresHidden = !areTodoScoresHidden;
       renderList();
@@ -8251,23 +8340,7 @@
   </script>
   <script src="semantic-app-sync.js"></script>
   <script src="tally-storage.js"></script>
-  <script src="temporary-data-transfer.js"></script>
   <script>
-    window.TemporaryDataTransfer.install({
-      appId: "tally-clicker",
-      appName: "Tally Clicker",
-      storageKeys: [
-        "custom-points-counter-state-v5",
-        "custom-points-counter-state-v4",
-        "custom-points-counter-state-v3",
-        "custom-points-counter-state-v2",
-        "custom-points-counter-value-v1",
-        "streak-counter-state-v2",
-        "streak-counter-state-v1",
-        "streak-counter-sound-v1"
-      ],
-      disableRawSync: true
-    });
     window.SemanticAppSync.install({
       appId: "tally-clicker",
       appName: "Tally Clicker",
