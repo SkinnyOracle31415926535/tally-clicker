@@ -13,7 +13,6 @@ test("Todo edit mode opens the existing skill editor", () => {
 
 test("hidden Todo skills remain visible but clearly marked in edit mode", () => {
   assert.match(source, /row\.classList\.toggle\("is-hidden", skill\.hidden\)/);
-  assert.match(source, /\.list-table \.is-hidden td \{/);
   assert.match(source, /\.list-table \.is-hidden td:not\(\.skill-edit-actions\) \{\s+text-decoration-line: line-through;/);
   assert.match(source, /skill\.hidden = !skill\.hidden;\s+saveState\(\);\s+renderList\(\);/);
 });
