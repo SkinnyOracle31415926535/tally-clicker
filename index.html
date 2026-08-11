@@ -5566,7 +5566,7 @@
       if (editing) isListViewing = false;
       draggedSkillId = null;
       renderList();
-      statusbar.textContent = editing ? "hide or reorder skills" : "TODO ready";
+      statusbar.textContent = editing ? "edit, hide, or reorder skills" : "TODO ready";
     }
 
     function setListViewing(viewing) {
@@ -5667,6 +5667,12 @@
       reps.textContent = skill.completed + " / " + skill.reps;
       const actions = document.createElement("td");
       actions.className = "skill-edit-actions";
+      const editButton = document.createElement("button");
+      editButton.type = "button";
+      editButton.className = "skill-order-button";
+      editButton.textContent = "edit";
+      editButton.setAttribute("aria-label", "Edit " + skill.name);
+      editButton.addEventListener("click", () => openSkillEditDialog(skill.id));
       const visibilityButton = document.createElement("button");
       visibilityButton.type = "button";
       visibilityButton.className = "skill-order-button";
@@ -5693,7 +5699,7 @@
       moveDown.title = skillIndex === skillCount - 1 ? skill.name + " is already last" : "Move " + skill.name + " down";
       moveDown.addEventListener("click", () => moveSkillByOffset(skill.id, 1));
       orderActions.append(moveUp, moveDown);
-      actions.append(visibilityButton, orderActions);
+      actions.append(editButton, visibilityButton, orderActions);
       row.append(name, reps, actions);
       listTableBody.appendChild(row);
     }

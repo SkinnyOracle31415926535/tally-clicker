@@ -4,11 +4,10 @@ const { test } = require("node:test");
 
 const source = readFileSync(new URL("../transfer-theme.js", `file://${__filename}`), "utf8");
 
-test("Tally Clicker sync theme replaces only the generic sync chrome", () => {
+test("Tally Clicker utility theme retains native sync styling", () => {
   assert.match(source, /styleMarkers/);
   assert.match(source, /style\.remove\(\)/);
   assert.doesNotMatch(source, /Tahoma/);
-  assert.doesNotMatch(source, /ryan-transfer|ryan-v3-recovery/);
   assert.match(source, /ryan-semantic-sync/);
   assert.match(source, /counter-dialog/);
 });

@@ -4,6 +4,6 @@
   "type": "module",
   "scripts": {
     "build": "node build.mjs",
-    "test": "node --check transfer-theme.js && node --check tally-storage.js && node --check semantic-app-sync.js && node --check worker/index.js && node --test tests/tally-semantic-storage.test.cjs tests/transfer-theme.test.cjs && npm run build"
+    "test": "node --check transfer-theme.js && node --check tally-storage.js && node --check semantic-app-sync.js && node --check worker/index.js && node --test tests/tally-semantic-storage.test.cjs tests/transfer-theme.test.cjs tests/todo-edit-mode.test.cjs && npm run build"
   }
 }
