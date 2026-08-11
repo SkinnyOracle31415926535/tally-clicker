@@ -1304,6 +1304,16 @@
       background: var(--green);
     }
 
+    .list-table .is-hidden td {
+      color: #3f3f3f;
+      background: #b8b8b8;
+    }
+
+    .list-table .is-hidden td:not(.skill-edit-actions) {
+      text-decoration-line: line-through;
+      text-decoration-thickness: 2px;
+    }
+
     .list-table .skill-progress {
       white-space: nowrap;
       text-align: center;
@@ -5659,6 +5669,7 @@
       const row = document.createElement("tr");
       row.classList.toggle("is-current", getCurrentSkill(getSelectedList())?.id === skill.id);
       row.classList.toggle("is-complete", skill.completed >= skill.reps);
+      row.classList.toggle("is-hidden", skill.hidden);
 
       const name = document.createElement("td");
       name.textContent = skill.name;
