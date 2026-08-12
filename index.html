@@ -8333,7 +8333,19 @@
     streakCounter.load();
     render();
     loadStudentShufflerClasses({ announce: true });
+    window.addEventListener("tally-automatic-sync-applied", () => {
+      loadState();
+      streakCounter.load();
+      render();
+    });
   </script>
-  <script src="transfer-theme.js"></script>
+  <script src="automatic-app-sync.js"></script>
+  <script src="tally-automatic-storage.js"></script>
+  <script>
+    window.AutomaticAppSync.install({
+      appId: "tally-clicker",
+      storage: window.TallyStorage
+    });
+  </script>
 </body>
 </html>
