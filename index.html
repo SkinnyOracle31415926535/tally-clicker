@@ -235,6 +235,29 @@
       gap: 10px;
     }
 
+    .stopwatch-setting {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(148px, auto);
+      align-items: center;
+      gap: 10px;
+      font-size: clamp(18px, 4.5vw, 26px);
+      font-weight: 500;
+      line-height: 1;
+      text-transform: lowercase;
+    }
+
+    .stopwatch-setting select {
+      min-height: 48px;
+      width: 100%;
+      padding: 6px 10px;
+      color: var(--black);
+      background: var(--green);
+      border: 3px solid var(--black);
+      border-radius: 0;
+      font: inherit;
+      text-transform: lowercase;
+    }
+
     .stopwatch-title {
       margin: 0;
       font-size: clamp(42px, 12vw, 76px);
@@ -404,6 +427,18 @@
 
     .stopwatch-roster-row.is-untimed .stopwatch-record {
       font-size: clamp(16px, 4vw, 22px);
+    }
+
+    .elimination-roster {
+      max-height: min(54dvh, 560px);
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      align-content: start;
+    }
+
+    .elimination-leader {
+      min-height: 106px;
+      font-size: clamp(32px, 9vw, 58px);
     }
 
     .stopwatch-roster-row:hover,
@@ -2700,6 +2735,7 @@
       <button class="mode-button todo-mode" type="button" data-mode="list">todo</button>
       <button class="mode-button" type="button" data-mode="streak">streak counter</button>
       <button class="mode-button" type="button" data-mode="stopwatch">stopwatch</button>
+      <button class="mode-button" type="button" data-mode="elimination">least outs</button>
     </nav>
 
     <section class="content">
@@ -2937,6 +2973,13 @@
             <div class="dialog-label">active class</div>
             <div id="stopwatchClassName" class="stopwatch-class-name">no class selected</div>
             <p id="stopwatchClassNote" class="stopwatch-note">choose a saved class to start.</p>
+            <label class="stopwatch-setting" for="stopwatchBestDirection">
+              <span>best time</span>
+              <select id="stopwatchBestDirection">
+                <option value="lowest">lowest time wins</option>
+                <option value="highest">highest time wins</option>
+              </select>
+            </label>
           </div>
           <div class="stopwatch-actions">
             <button id="startStopwatchPlay" class="stopwatch-play" type="button">play</button>
@@ -2945,6 +2988,27 @@
         </div>
 
         <div id="stopwatchClassSlot" class="class-roster-slot"></div>
+      </section>
+
+      <section id="eliminationPanel" class="panel stopwatch-panel" aria-label="Least outs game">
+        <div class="stopwatch-header">
+          <h1 class="stopwatch-title">least outs</h1>
+          <p class="stopwatch-note">tap who got out each round. everybody keeps playing.</p>
+        </div>
+        <div class="stopwatch-setup">
+          <div class="stopwatch-card">
+            <div class="dialog-label">active class</div>
+            <div id="eliminationClassName" class="stopwatch-class-name">no class selected</div>
+            <p id="eliminationClassNote" class="stopwatch-note">choose or create a saved class below.</p>
+          </div>
+        </div>
+        <div id="eliminationClassSlot" class="class-roster-slot"></div>
+        <div id="eliminationLeader" class="display label-display elimination-leader">choose a class</div>
+        <div id="eliminationRoster" class="stopwatch-roster elimination-roster"></div>
+        <div class="stopwatch-actions">
+          <button id="undoEliminationOut" type="button" disabled>undo last out</button>
+          <button id="resetEliminationOuts" class="remove-action stopwatch-reset-times" type="button" disabled>reset outs</button>
+        </div>
       </section>
     </section>
 
@@ -3239,7 +3303,8 @@
       multiple: document.getElementById("multiplePanel"),
       list: document.getElementById("listPanel"),
       streak: document.getElementById("streakPanel"),
-      stopwatch: document.getElementById("stopwatchPanel")
+      stopwatch: document.getElementById("stopwatchPanel"),
+      elimination: document.getElementById("eliminationPanel")
     };
     const multipleLeader = document.getElementById("multipleLeader");
     const showMultipleDailyRecords = document.getElementById("showMultipleDailyRecords");
@@ -3268,6 +3333,7 @@
     const listClassSlot = document.getElementById("listClassSlot");
     const streakClassSlot = document.getElementById("streakClassSlot");
     const stopwatchClassSlot = document.getElementById("stopwatchClassSlot");
+    const eliminationClassSlot = document.getElementById("eliminationClassSlot");
     const classSelector = document.getElementById("classSelector");
     const classSelectorName = document.getElementById("classSelectorName");
     const classSelectorOpen = document.getElementById("classSelectorOpen");
@@ -3369,6 +3435,7 @@
     const statusbar = document.getElementById("statusbar");
     const stopwatchClassName = document.getElementById("stopwatchClassName");
     const stopwatchClassNote = document.getElementById("stopwatchClassNote");
+    const stopwatchBestDirection = document.getElementById("stopwatchBestDirection");
     const startStopwatchPlay = document.getElementById("startStopwatchPlay");
     const resetStopwatchTimes = document.getElementById("resetStopwatchTimes");
     const stopwatchRosterDialog = document.getElementById("stopwatchRosterDialog");
@@ -3390,6 +3457,12 @@
     const stopwatchRedo = document.getElementById("stopwatchRedo");
     const stopwatchSubmit = document.getElementById("stopwatchSubmit");
     const stopwatchTimerBack = document.getElementById("stopwatchTimerBack");
+    const eliminationClassName = document.getElementById("eliminationClassName");
+    const eliminationClassNote = document.getElementById("eliminationClassNote");
+    const eliminationLeader = document.getElementById("eliminationLeader");
+    const eliminationRoster = document.getElementById("eliminationRoster");
+    const undoEliminationOut = document.getElementById("undoEliminationOut");
+    const resetEliminationOuts = document.getElementById("resetEliminationOuts");
 
     let state = {
       mode: "single",
@@ -3406,6 +3479,11 @@
       stopwatch: {
         activeClassId: null,
         recordDate: "",
+        records: {},
+        bestDirectionByClass: {}
+      },
+      elimination: {
+        activeClassId: null,
         records: {}
       },
       lists: [],
@@ -3449,6 +3527,9 @@
     let stopwatchReviewConfirmationTimer = null;
     let stopwatchHistoryConfirmationAction = null;
     let stopwatchHistoryConfirmationTimer = null;
+    let eliminationLastOut = null;
+    let pendingStopwatchBestDirection = null;
+    let pendingStopwatchDirectionClassId = null;
     let draggedSkillId = null;
     let bratKeyboardState = null;
     let bratKeyboardShifted = false;
@@ -3508,6 +3589,16 @@
       return records;
     }
 
+    function normalizeStopwatchBestDirections(rawDirections) {
+      const directions = {};
+      if (!rawDirections || typeof rawDirections !== "object") return directions;
+      Object.entries(rawDirections).forEach(([classId, direction]) => {
+        if (typeof classId !== "string" || !classId || classId.length > 240 || (direction !== "lowest" && direction !== "highest")) return;
+        directions[classId] = direction;
+      });
+      return directions;
+    }
+
     function normalizeStopwatchState(rawStopwatch, classes) {
       const fallbackClassId = classes[0]?.id || null;
       const activeClassId = typeof rawStopwatch?.activeClassId === "string" && classes.some((savedClass) => savedClass.id === rawStopwatch.activeClassId)
@@ -3517,7 +3608,40 @@
       return {
         activeClassId,
         recordDate: typeof rawStopwatch?.recordDate === "string" ? rawStopwatch.recordDate : "",
-        records: normalizeStopwatchRecords(rawStopwatch?.records)
+        records: normalizeStopwatchRecords(rawStopwatch?.records),
+        bestDirectionByClass: normalizeStopwatchBestDirections(rawStopwatch?.bestDirectionByClass)
+      };
+    }
+
+    function normalizeEliminationRecords(rawRecords) {
+      const records = {};
+      if (!rawRecords || typeof rawRecords !== "object") return records;
+
+      Object.entries(rawRecords).forEach(([classId, rawClassRecords]) => {
+        if (typeof classId !== "string" || !rawClassRecords || typeof rawClassRecords !== "object") return;
+        const classRecords = {};
+        Object.entries(rawClassRecords).forEach(([name, rawOuts]) => {
+          const key = normalizeMultipleName(name);
+          const outs = Math.round(Number(rawOuts));
+          if (key && Number.isFinite(outs) && outs > 0 && outs <= 100000) {
+            classRecords[key] = outs;
+          }
+        });
+        if (Object.keys(classRecords).length) records[classId] = classRecords;
+      });
+
+      return records;
+    }
+
+    function normalizeEliminationState(rawElimination, classes) {
+      const fallbackClassId = classes[0]?.id || null;
+      const activeClassId = typeof rawElimination?.activeClassId === "string" && classes.some((savedClass) => savedClass.id === rawElimination.activeClassId)
+        ? rawElimination.activeClassId
+        : fallbackClassId;
+
+      return {
+        activeClassId,
+        records: normalizeEliminationRecords(rawElimination?.records)
       };
     }
 
@@ -4434,12 +4558,16 @@
 
     function replaceSharedClasses(sharedClasses) {
       const selectedClassId = state.selectedClassId;
+      if (eliminationLastOut && sharedClasses.some((savedClass) => savedClass.id === eliminationLastOut.classId)) {
+        eliminationLastOut = null;
+      }
       const tallyOnlyClasses = state.classes.filter((savedClass) => !isSharedClass(savedClass));
       state.classes = [...sharedClasses, ...tallyOnlyClasses];
       state.selectedClassId = state.classes.some((savedClass) => savedClass.id === selectedClassId)
         ? selectedClassId
         : state.classes[0]?.id || null;
       state.stopwatch = normalizeStopwatchState(state.stopwatch, state.classes);
+      state.elimination = normalizeEliminationState(state.elimination, state.classes);
     }
 
     function haveSharedClassesChanged(sharedClasses) {
@@ -4534,6 +4662,7 @@
     }
 
     function loadState() {
+      eliminationLastOut = null;
       let hasSavedState = false;
 
       try {
@@ -4542,7 +4671,7 @@
         const saved = JSON.parse(savedState || "{}");
 
         if (saved && typeof saved === "object") {
-          state.mode = saved.mode === "list" ? "list" : saved.mode === "streak" ? "streak" : saved.mode === "stopwatch" ? "stopwatch" : saved.mode === "single" ? "single" : ["multiple", "teams", "individuals"].includes(saved.mode) ? "multiple" : "single";
+          state.mode = saved.mode === "list" ? "list" : saved.mode === "streak" ? "streak" : saved.mode === "stopwatch" ? "stopwatch" : saved.mode === "elimination" ? "elimination" : saved.mode === "single" ? "single" : ["multiple", "teams", "individuals"].includes(saved.mode) ? "multiple" : "single";
           state.single = Number.isFinite(Number(saved.single)) ? Number(saved.single) : state.single;
           state.increasePitch = saved.increasePitch === true;
 
@@ -4567,6 +4696,7 @@
             ? saved.multipleClassId
             : null;
           state.stopwatch = normalizeStopwatchState(saved.stopwatch, state.classes);
+          state.elimination = normalizeEliminationState(saved.elimination, state.classes);
 
           state.lists = normalizeLists(saved.lists);
           state.selectedListId = state.lists.some((list) => list.id === saved.selectedListId)
@@ -4589,6 +4719,7 @@
         state.classes = [];
         state.selectedClassId = null;
         state.stopwatch = normalizeStopwatchState(null, state.classes);
+        state.elimination = normalizeEliminationState(null, state.classes);
         state.lists = [];
         state.selectedListId = null;
         state.listSeedVersion = 0;
@@ -4987,13 +5118,14 @@
     }
 
     function renderMode() {
-      const classSlot = state.mode === "single"
-        ? singleClassSlot
-        : state.mode === "multiple"
-          ? multipleClassSlot
-          : state.mode === "streak"
-              ? streakClassSlot
-              : stopwatchClassSlot;
+      const classSlots = {
+        single: singleClassSlot,
+        multiple: multipleClassSlot,
+        streak: streakClassSlot,
+        stopwatch: stopwatchClassSlot,
+        elimination: eliminationClassSlot
+      };
+      const classSlot = classSlots[state.mode] || multipleClassSlot;
       if (state.mode !== "list" && classRosterPanel.parentElement !== classSlot) classSlot.appendChild(classRosterPanel);
       classRosterPanel.hidden = state.mode === "list";
 
@@ -5248,14 +5380,15 @@
     function renderClassRosterControls() {
       const selectedClass = getSelectedClass();
       const isStopwatch = state.mode === "stopwatch";
+      const isElimination = state.mode === "elimination";
       const loadsIntoMultiple = state.mode === "single" || state.mode === "list";
       const selectedClassIsShared = isSharedClass(selectedClass);
       classSelectorName.textContent = selectedClass?.name || "no saved classes yet";
       classSelectorOpen.textContent = selectedClass ? "open" : "empty";
       classSelector.disabled = !state.classes.length;
       loadClass.disabled = !selectedClass;
-      loadClass.textContent = isStopwatch ? "use" : "load";
-      loadClass.setAttribute("aria-label", isStopwatch ? "Use selected class for stopwatch" : loadsIntoMultiple ? "Load selected class in multiple" : "Load selected class");
+      loadClass.textContent = isStopwatch || isElimination ? "use" : "load";
+      loadClass.setAttribute("aria-label", isStopwatch ? "Use selected class for stopwatch" : isElimination ? "Use selected class for least outs" : loadsIntoMultiple ? "Load selected class in multiple" : "Load selected class");
       editClass.disabled = !selectedClass || selectedClassIsShared;
       editClass.title = selectedClassIsShared ? "Edit this shared group in Student Shuffler" : "";
       classRosterNote.textContent = selectedClassIsShared
@@ -5434,12 +5567,14 @@
         state.classes.push(savedClass);
         state.selectedClassId = savedClass.id;
         if (state.mode === "stopwatch") state.stopwatch.activeClassId = savedClass.id;
+        if (state.mode === "elimination") state.elimination.activeClassId = savedClass.id;
       }
 
       saveState();
       renderMultiple();
       streakCounter.render();
       renderStopwatch();
+      renderElimination();
       const preservedProgressModes = [
         addedToMultiple ? "multiple" : "",
         addedToStreak ? "streak" : ""
@@ -5463,6 +5598,14 @@
         saveState();
         renderStopwatch();
         statusbar.textContent = savedClass.name + " selected for stopwatch";
+        return;
+      }
+
+      if (state.mode === "elimination") {
+        state.elimination.activeClassId = savedClass.id;
+        saveState();
+        renderElimination();
+        statusbar.textContent = savedClass.name + " selected for least outs";
         return;
       }
 
@@ -5510,9 +5653,11 @@
       if (state.multipleClassId === savedClass.id) state.multipleClassId = null;
       streakCounter.unlinkClass(savedClass.id);
       unlinkStopwatchClass(savedClass.id);
+      unlinkEliminationClass(savedClass.id);
       saveState();
       renderMultiple();
       renderStopwatch();
+      renderElimination();
       statusbar.textContent = savedClass.name + " deleted; current counters were not changed";
       return true;
     }
@@ -5966,6 +6111,20 @@
       return state.classes[0] || null;
     }
 
+    function getStopwatchBestDirection(classId) {
+      return state.stopwatch.bestDirectionByClass?.[classId] === "highest" ? "highest" : "lowest";
+    }
+
+    function getStopwatchBestDirectionLabel(classId) {
+      return getStopwatchBestDirection(classId) === "highest" ? "highest time wins" : "lowest time wins";
+    }
+
+    function isBetterStopwatchTime(nextTime, previousTime, classId) {
+      return getStopwatchBestDirection(classId) === "highest"
+        ? nextTime > previousTime
+        : nextTime < previousTime;
+    }
+
     function getStopwatchRecords(classId) {
       if (!state.stopwatch.records[classId]) state.stopwatch.records[classId] = {};
       return state.stopwatch.records[classId];
@@ -6068,7 +6227,11 @@
       }));
       const timedEntries = entries
         .filter((entry) => entry.timeMs !== null)
-        .sort((left, right) => left.timeMs - right.timeMs || left.name.localeCompare(right.name));
+        .sort((left, right) => {
+          const difference = left.timeMs - right.timeMs;
+          return (getStopwatchBestDirection(savedClass.id) === "highest" ? -difference : difference)
+            || left.name.localeCompare(right.name);
+        });
       let previousTime = null;
       let rank = 0;
       timedEntries.forEach((entry, index) => {
@@ -6087,7 +6250,7 @@
       stopwatchRoster.replaceChildren();
       stopwatchRosterDialogTitle.textContent = savedClass?.name || "stopwatch";
       stopwatchRosterNote.textContent = savedClass
-        ? "pick whose turn it is. fastest times are first."
+        ? "pick whose turn it is. " + (getStopwatchBestDirection(savedClass.id) === "highest" ? "longest times are first." : "fastest times are first.")
         : "choose a saved class before starting play mode.";
 
       if (!savedClass?.students.length) {
@@ -6223,16 +6386,42 @@
       const hasSavedTimes = Boolean(savedClass?.students.some((name) => stopwatchRecords[normalizeMultipleName(name)]));
       stopwatchClassName.textContent = savedClass?.name || "no class selected";
       stopwatchClassNote.textContent = savedClass?.students.length
-        ? savedClass.students.length + " kids ready for timed forward rolls."
+        ? savedClass.students.length + " kids ready. " + getStopwatchBestDirectionLabel(savedClass.id) + "."
         : savedClass
           ? "add names to this saved class below."
           : "choose or create a saved class below.";
+      stopwatchBestDirection.value = savedClass ? getStopwatchBestDirection(savedClass.id) : "lowest";
+      stopwatchBestDirection.disabled = !savedClass;
       startStopwatchPlay.disabled = !savedClass?.students.length;
       resetStopwatchTimes.disabled = !hasSavedTimes;
       renderStopwatchHistoryControls();
       if (didResetRecords) saveState();
       if (stopwatchRosterDialog.open) renderStopwatchRoster();
       if (stopwatchTimerDialog.open) renderStopwatchTimer();
+    }
+
+    function setStopwatchBestDirection(nextDirection) {
+      const savedClass = getStopwatchClass();
+      const direction = nextDirection === "highest" ? "highest" : "lowest";
+      if (!savedClass || direction === getStopwatchBestDirection(savedClass.id)) {
+        renderStopwatch();
+        return;
+      }
+
+      const hasSavedTimes = Object.keys(state.stopwatch.records[savedClass.id] || {}).length > 0;
+      if (hasSavedTimes) {
+        pendingStopwatchBestDirection = direction;
+        pendingStopwatchDirectionClassId = savedClass.id;
+        renderStopwatch();
+        openResetDialog("stopwatch-direction");
+        return;
+      }
+
+      state.stopwatch.bestDirectionByClass[savedClass.id] = direction;
+      clearStopwatchHistory();
+      saveState();
+      renderStopwatch();
+      statusbar.textContent = savedClass.name + " set to " + getStopwatchBestDirectionLabel(savedClass.id);
     }
 
     function openStopwatchRoster() {
@@ -6322,7 +6511,7 @@
       const records = getStopwatchRecords(savedClass.id);
       const key = normalizeMultipleName(stopwatchSelectedStudent);
       const previous = records[key];
-      const isNewRecord = !previous || elapsed < previous;
+      const isNewRecord = !previous || isBetterStopwatchTime(elapsed, previous, savedClass.id);
       if (isNewRecord) {
         rememberStopwatchState();
         records[key] = elapsed;
@@ -6385,10 +6574,162 @@
     function unlinkStopwatchClass(classId) {
       clearStopwatchHistory();
       delete state.stopwatch.records[classId];
+      delete state.stopwatch.bestDirectionByClass[classId];
       if (state.stopwatch.activeClassId === classId) {
         state.stopwatch.activeClassId = state.classes[0]?.id || null;
       }
       if (!getStopwatchClass()) exitStopwatchPlay();
+    }
+
+    function getEliminationClass() {
+      const activeClass = state.classes.find((savedClass) => savedClass.id === state.elimination.activeClassId);
+      if (activeClass) return activeClass;
+      state.elimination.activeClassId = state.classes[0]?.id || null;
+      return state.classes[0] || null;
+    }
+
+    function getEliminationRecords(classId) {
+      if (!state.elimination.records[classId]) state.elimination.records[classId] = {};
+      return state.elimination.records[classId];
+    }
+
+    function getEliminationEntries(savedClass) {
+      if (!savedClass) return [];
+      const records = state.elimination.records[savedClass.id] || {};
+      const entries = savedClass.students.map((name) => ({
+        name,
+        outs: records[normalizeMultipleName(name)] || 0,
+        rank: null
+      })).sort((left, right) => left.outs - right.outs || left.name.localeCompare(right.name));
+      let previousOuts = null;
+      let rank = 0;
+      entries.forEach((entry, index) => {
+        if (entry.outs !== previousOuts) rank = index + 1;
+        entry.rank = rank;
+        previousOuts = entry.outs;
+      });
+      return entries;
+    }
+
+    function formatEliminationOuts(outs) {
+      return outs + " out" + (outs === 1 ? "" : "s");
+    }
+
+    function getEliminationLeader(entries) {
+      if (!entries.length) return "choose a class";
+      const fewestOuts = entries[0].outs;
+      const leaders = entries.filter((entry) => entry.outs === fewestOuts);
+      if (leaders.length === entries.length) return "all tied · " + formatEliminationOuts(fewestOuts);
+      if (leaders.length === 1) return "leading: " + leaders[0].name + " · " + formatEliminationOuts(fewestOuts);
+      return leaders.length + " tied for first · " + formatEliminationOuts(fewestOuts);
+    }
+
+    function renderEliminationRoster(savedClass, entries, focusStudentName = "") {
+      const scrollTop = eliminationRoster.scrollTop;
+      eliminationRoster.replaceChildren();
+      if (!savedClass?.students.length) {
+        const empty = document.createElement("p");
+        empty.className = "dialog-description";
+        empty.textContent = savedClass ? "this class has no names yet." : "choose a saved class to start.";
+        eliminationRoster.appendChild(empty);
+        return;
+      }
+
+      entries.forEach((entry) => {
+        const row = document.createElement("button");
+        const name = document.createElement("span");
+        const rank = document.createElement("span");
+        const record = document.createElement("span");
+        row.type = "button";
+        row.className = "stopwatch-roster-row elimination-row";
+        row.dataset.eliminationStudent = normalizeMultipleName(entry.name);
+        name.className = "stopwatch-student-name";
+        rank.className = "stopwatch-rank";
+        record.className = "stopwatch-record";
+        name.textContent = entry.name;
+        rank.textContent = "#" + entry.rank;
+        record.textContent = formatEliminationOuts(entry.outs);
+        row.setAttribute("aria-label", entry.name + ", rank " + entry.rank + ", " + formatEliminationOuts(entry.outs) + ". Tap to record an out.");
+        row.append(name, rank, record);
+        row.addEventListener("click", () => recordEliminationOut(entry.name));
+        eliminationRoster.appendChild(row);
+      });
+      eliminationRoster.scrollTop = scrollTop;
+      if (focusStudentName) {
+        const focusKey = normalizeMultipleName(focusStudentName);
+        window.requestAnimationFrame(() => Array.from(eliminationRoster.querySelectorAll("button")).find((row) => row.dataset.eliminationStudent === focusKey)?.focus({ preventScroll: true }));
+      }
+    }
+
+    function renderElimination(focusStudentName = "") {
+      const savedClass = getEliminationClass();
+      const entries = getEliminationEntries(savedClass);
+      const hasOuts = entries.some((entry) => entry.outs > 0);
+      eliminationClassName.textContent = savedClass?.name || "no class selected";
+      eliminationClassNote.textContent = savedClass?.students.length
+        ? savedClass.students.length + " kids ready. tap the one who got out; everybody stays in."
+        : savedClass
+          ? "add names to this saved class below."
+          : "choose or create a saved class below.";
+      eliminationLeader.textContent = getEliminationLeader(entries);
+      undoEliminationOut.disabled = !eliminationLastOut || eliminationLastOut.classId !== savedClass?.id || !savedClass?.students.includes(eliminationLastOut.name);
+      resetEliminationOuts.disabled = !hasOuts;
+      renderEliminationRoster(savedClass, entries, focusStudentName);
+    }
+
+    function recordEliminationOut(studentName) {
+      const savedClass = getEliminationClass();
+      if (!savedClass || !savedClass.students.includes(studentName)) return;
+      const records = getEliminationRecords(savedClass.id);
+      const key = normalizeMultipleName(studentName);
+      const previousOuts = records[key] || 0;
+      records[key] = previousOuts + 1;
+      eliminationLastOut = { classId: savedClass.id, key, name: studentName, previousOuts, recordedOuts: records[key] };
+      saveState();
+      renderElimination(studentName);
+      playSound("plus", records[key]);
+      statusbar.textContent = studentName + " recorded " + formatEliminationOuts(records[key]);
+    }
+
+    function undoEliminationOutChange() {
+      const previous = eliminationLastOut;
+      const savedClass = state.classes.find((candidate) => candidate.id === previous?.classId);
+      if (!previous || !savedClass || !savedClass.students.includes(previous.name)) return;
+      const records = getEliminationRecords(previous.classId);
+      if ((records[previous.key] || 0) !== previous.recordedOuts) {
+        eliminationLastOut = null;
+        renderElimination();
+        statusbar.textContent = "undo is no longer available after scores changed";
+        return;
+      }
+      if (previous.previousOuts > 0) records[previous.key] = previous.previousOuts;
+      else delete records[previous.key];
+      if (!Object.keys(records).length) delete state.elimination.records[previous.classId];
+      eliminationLastOut = null;
+      saveState();
+      renderElimination(previous.name);
+      playSound("clear");
+      statusbar.textContent = "undid " + previous.name + "'s last out";
+    }
+
+    function performEliminationReset() {
+      const savedClass = getEliminationClass();
+      if (!savedClass || !state.elimination.records[savedClass.id]) return;
+      delete state.elimination.records[savedClass.id];
+      if (eliminationLastOut?.classId === savedClass.id) eliminationLastOut = null;
+      saveState();
+      renderElimination();
+      playSound("clear");
+      statusbar.textContent = savedClass.name + " least-outs scores reset";
+      window.requestAnimationFrame(() => eliminationRoster.querySelector("button")?.focus());
+    }
+
+    function unlinkEliminationClass(classId) {
+      delete state.elimination.records[classId];
+      if (eliminationLastOut?.classId === classId) eliminationLastOut = null;
+      if (state.elimination.activeClassId === classId) {
+        state.elimination.activeClassId = state.classes[0]?.id || null;
+      }
     }
 
     function render() {
@@ -6398,6 +6739,7 @@
       renderList();
       streakCounter.render();
       renderStopwatch();
+      renderElimination();
       saveState();
     }
 
@@ -6422,7 +6764,9 @@
             ? "editing streak students"
             : mode === "stopwatch"
               ? "stopwatch setup ready"
-            : "single points";
+              : mode === "elimination"
+                ? "least outs ready"
+                : "single points";
     }
 
     function changeSingle(amount, kind) {
@@ -6758,22 +7102,53 @@
       window.requestAnimationFrame(() => startStopwatchPlay.focus());
     }
 
+    function performStopwatchDirectionChange(classId, direction) {
+      const savedClass = state.classes.find((item) => item.id === classId);
+      if (!savedClass || (direction !== "lowest" && direction !== "highest")) return;
+      delete state.stopwatch.records[classId];
+      state.stopwatch.bestDirectionByClass[classId] = direction;
+      clearStopwatchHistory();
+      saveState();
+      renderStopwatch();
+      playSound("clear");
+      statusbar.textContent = savedClass.name + " set to " + getStopwatchBestDirectionLabel(classId) + "; old times cleared";
+      window.requestAnimationFrame(() => stopwatchBestDirection.focus());
+    }
+
     function renderResetDialog() {
       const isStopwatch = pendingResetKind === "stopwatch";
+      const isElimination = pendingResetKind === "elimination";
+      const isStopwatchDirection = pendingResetKind === "stopwatch-direction";
       const stopwatchClass = isStopwatch ? getStopwatchClass() : null;
+      const eliminationClass = isElimination ? getEliminationClass() : null;
+      const directionClass = isStopwatchDirection
+        ? state.classes.find((savedClass) => savedClass.id === pendingStopwatchDirectionClassId)
+        : null;
       resetDialogTitle.textContent = isStopwatch
         ? "reset stopwatch times?"
-        : "reset all multiple scores?";
+        : isElimination
+          ? "reset least outs?"
+          : isStopwatchDirection
+            ? "change best time?"
+            : "reset all multiple scores?";
       resetDialogDescription.textContent = resetConfirmStep === 1
         ? isStopwatch
           ? "this will clear every saved time for " + (stopwatchClass?.name || "this class") + ". continue to the final confirmation."
-          : "this will set every multiple score to zero. continue to the final confirmation."
+          : isElimination
+            ? "this will clear every out for " + (eliminationClass?.name || "this class") + ". continue to the final confirmation."
+            : isStopwatchDirection
+              ? "this will switch " + (directionClass?.name || "this class") + " to " + (pendingStopwatchBestDirection === "highest" ? "highest time wins" : "lowest time wins") + " and clear its saved times. continue to the final confirmation."
+              : "this will set every multiple score to zero. continue to the final confirmation."
         : isStopwatch
           ? "last check: you can undo this stopwatch reset until you reload."
-          : "last check: this reset cannot be undone.";
+          : isElimination
+            ? "last check: this reset cannot be undone."
+            : isStopwatchDirection
+              ? "last check: the old times cannot be restored."
+              : "last check: this reset cannot be undone.";
       resetStepOne.classList.toggle("active", resetConfirmStep === 1);
       resetStepTwo.classList.toggle("active", resetConfirmStep === 2);
-      confirmReset.textContent = resetConfirmStep === 1 ? "continue" : "yes, reset";
+      confirmReset.textContent = resetConfirmStep === 1 ? "continue" : isStopwatchDirection ? "yes, change" : "yes, reset";
     }
 
     function openResetDialog(kind) {
@@ -6792,9 +7167,13 @@
       }
 
       const resetKind = pendingResetKind;
+      const direction = pendingStopwatchBestDirection;
+      const directionClassId = pendingStopwatchDirectionClassId;
       closeCounterDialog(resetDialog);
       if (resetKind === "multiple") performMultipleReset();
       if (resetKind === "stopwatch") performStopwatchReset();
+      if (resetKind === "elimination") performEliminationReset();
+      if (resetKind === "stopwatch-direction") performStopwatchDirectionChange(directionClassId, direction);
     }
 
     function openNewListDialog() {
@@ -7131,6 +7510,7 @@
       if (!todoRedoButton.disabled) armOrConfirmTodoAction("redo", "redo", redoTodoChange);
     });
     closeCelebration.addEventListener("click", hideTodoCelebration);
+    stopwatchBestDirection.addEventListener("change", () => setStopwatchBestDirection(stopwatchBestDirection.value));
     startStopwatchPlay.addEventListener("click", openStopwatchRoster);
     resetStopwatchTimes.addEventListener("click", () => openResetDialog("stopwatch"));
     stopwatchPlayUndo.addEventListener("click", () => armOrConfirmStopwatchHistoryAction("undo"));
@@ -7158,6 +7538,8 @@
       if (event.key === "Enter" || event.key === " ") cancelStopwatchExitHold();
     });
     stopwatchHoldExit.addEventListener("click", (event) => event.preventDefault());
+    undoEliminationOut.addEventListener("click", undoEliminationOutChange);
+    resetEliminationOuts.addEventListener("click", () => openResetDialog("elimination"));
 
     addCounterForm.addEventListener("submit", (event) => {
       event.preventDefault();
@@ -7241,6 +7623,8 @@
     resetDialog.addEventListener("close", () => {
       pendingResetKind = null;
       resetConfirmStep = 1;
+      pendingStopwatchBestDirection = null;
+      pendingStopwatchDirectionClassId = null;
     });
     removeDialog.addEventListener("close", () => {
       selectedRemovalIds = new Set();

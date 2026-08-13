@@ -48,11 +48,17 @@ function primary() {
       { id: "student-shuffler:shared", name: "Shared", students: ["Bea"], neededByStudent: {}, sharedRosterKey: "builtin:boys-nga" },
     ],
     lists: [{ id: "todo-a", name: "Floor", skills: [{ id: "skill-a", name: "Handstand", reps: 5, completed: 1, hidden: false }] }],
-    stopwatch: { activeClassId: "class-a", recordDate: "2026-08-05", records: { "class-a": { ava: 1234 } } },
+    stopwatch: {
+      activeClassId: "class-a",
+      recordDate: "2026-08-05",
+      records: { "class-a": { ava: 1234 } },
+      bestDirectionByClass: { "class-a": "highest" },
+    },
+    elimination: { activeClassId: "class-a", records: { "class-a": { ava: 2 } } },
   };
 }
 
-test("Tally automatic storage exposes independent counters, private classes, lists, and stopwatch records", () => {
+test("Tally automatic storage exposes independent counters, private classes, lists, stopwatch records, and least-outs records", () => {
   const { adapters } = boot({
     "custom-points-counter-state-v5": JSON.stringify(primary()),
     "streak-counter-state-v2": JSON.stringify({ students: [{ id: "student-a", name: "Ava", streak: 2, target: 3, points: 1, hidden: false }], teamTarget: 5 }),
@@ -63,6 +69,15 @@ test("Tally automatic storage exposes independent counters, private classes, lis
   assert.equal(adapters.classes.listLocal().length, 1, "shared-roster classes stay with their own service");
   assert.equal(adapters.todos.listLocal().length, 1);
   assert.equal(adapters.stopwatch.listLocal().length, 1);
+  assert.equal(adapters.elimination.listLocal().length, 1);
+  assert.deepEqual(JSON.parse(JSON.stringify(adapters.stopwatchSettings.readLocal())), {
+    activeClassId: "class-a",
+    recordDate: "2026-08-05",
+  });
+  assert.deepEqual(JSON.parse(JSON.stringify(adapters.stopwatchDirections.readLocal())), {
+    bestDirectionByClass: { "class-a": "highest" },
+  });
+  assert.deepEqual(JSON.parse(JSON.stringify(adapters.eliminationSettings.readLocal())), { activeClassId: "class-a" });
   assert.equal(adapters.streakStudents.listLocal().length, 1);
   assert.deepEqual(JSON.parse(JSON.stringify(adapters.sound.readLocal())), { enabled: true });
 });
@@ -92,4 +107,43 @@ test("Tally automatic deletions remove only the selected list record", () => {
   const saved = JSON.parse(storage.getItem("custom-points-counter-state-v5"));
   assert.deepEqual(saved.lists, []);
   assert.equal(saved.multiple.length, 2);
+});
+
+test("Tally automatic least-outs sync applies and removes only the addressed class record", () => {
+  const { storage, adapters } = boot({ "custom-points-counter-state-v5": JSON.stringify(primary()) });
+  const [elimination] = adapters.elimination.listLocal();
+
+  adapters.elimination.applyRemote(elimination.recordId, { ...elimination.value, records: { ava: 4 } }, { source: "remote", deleted: false });
+  let saved = JSON.parse(storage.getItem("custom-points-counter-state-v5"));
+  assert.deepEqual(saved.elimination.records["class-a"], { ava: 4 });
+  assert.equal(saved.stopwatch.records["class-a"].ava, 1234);
+
+  adapters.elimination.applyRemote(elimination.recordId, null, { source: "remote", deleted: true });
+  saved = JSON.parse(storage.getItem("custom-points-counter-state-v5"));
+  assert.deepEqual(saved.elimination.records, {});
+});
+
+test("Tally automatic stopwatch directions use a separate backward-compatible record", () => {
+  const source = primary();
+  delete source.stopwatch.bestDirectionByClass;
+  const { storage, adapters } = boot({ "custom-points-counter-state-v5": JSON.stringify(source) });
+
+  assert.deepEqual(JSON.parse(JSON.stringify(adapters.stopwatchSettings.readLocal())), {
+    activeClassId: "class-a",
+    recordDate: "2026-08-05",
+  });
+  adapters.stopwatchSettings.applyRemote({
+    activeClassId: "class-a",
+    recordDate: "2026-08-06",
+  }, { source: "remote", deleted: false });
+  adapters.stopwatchDirections.applyRemote({
+    bestDirectionByClass: { "class-a": "highest" },
+  }, { source: "remote", deleted: false });
+  const saved = JSON.parse(storage.getItem("custom-points-counter-state-v5"));
+  assert.equal(saved.stopwatch.recordDate, "2026-08-06");
+  assert.deepEqual(saved.stopwatch.bestDirectionByClass, { "class-a": "highest" });
+  assert.throws(
+    () => adapters.stopwatchDirections.applyRemote({ bestDirectionByClass: { "class-a": "fastest" } }, { source: "remote", deleted: false }),
+    /invalid/,
+  );
 });

@@ -132,9 +132,25 @@
       && isObject(value.records) && safeJson(value.records);
   }
 
+  function validStopwatchDirections(value) {
+    return isObject(value) && Object.entries(value).every(([classId, direction]) => (
+      typeof classId === "string" && classId.length <= 240
+      && (direction === "lowest" || direction === "highest")
+    ));
+  }
+
+  function validElimination(value) {
+    return isObject(value) && typeof value.classId === "string"
+      && makeRecordId("elimination", value.classId) !== null
+      && isObject(value.records) && Object.entries(value.records).every(([name, outs]) => (
+        typeof name === "string" && name.length <= 240
+        && Number.isSafeInteger(outs) && outs > 0 && outs <= 100000
+      ));
+  }
+
   function validPreferences(value) {
     return isObject(value) && !own(value, "multiple") && !own(value, "classes")
-      && !own(value, "lists") && !own(value, "stopwatch") && safeJson(value);
+      && !own(value, "lists") && !own(value, "stopwatch") && !own(value, "elimination") && safeJson(value);
   }
 
   function validStopwatchSettings(value) {
@@ -142,6 +158,16 @@
       && own(value, "activeClassId") && own(value, "recordDate")
       && (value.activeClassId === null || typeof value.activeClassId === "string")
       && typeof value.recordDate === "string" && value.recordDate.length <= 80;
+  }
+
+  function validStopwatchDirectionsRecord(value) {
+    return isObject(value) && Object.keys(value).length === 1 && own(value, "bestDirectionByClass")
+      && validStopwatchDirections(value.bestDirectionByClass);
+  }
+
+  function validEliminationSettings(value) {
+    return isObject(value) && Object.keys(value).length === 1 && own(value, "activeClassId")
+      && (value.activeClassId === null || typeof value.activeClassId === "string");
   }
 
   function validStreakPreferences(value) {
@@ -155,7 +181,7 @@
   function preferencesFrom(primary) {
     const value = {};
     for (const [key, item] of Object.entries(primary || {})) {
-      if (!["multiple", "classes", "lists", "stopwatch"].includes(key)) value[key] = clone(item);
+      if (!["multiple", "classes", "lists", "stopwatch", "elimination"].includes(key)) value[key] = clone(item);
     }
     return value;
   }
@@ -168,6 +194,20 @@
     };
   }
 
+  function stopwatchDirectionsFrom(primary) {
+    const source = isObject(primary?.stopwatch) ? primary.stopwatch : {};
+    return {
+      bestDirectionByClass: validStopwatchDirections(source.bestDirectionByClass) ? clone(source.bestDirectionByClass) : {},
+    };
+  }
+
+  function eliminationSettingsFrom(primary) {
+    const source = isObject(primary?.elimination) ? primary.elimination : {};
+    return {
+      activeClassId: typeof source.activeClassId === "string" ? source.activeClassId : null,
+    };
+  }
+
   function recordMap(snapshot) {
     const records = {
       preferences: new Map(),
@@ -175,7 +215,10 @@
       classes: new Map(),
       todos: new Map(),
       stopwatchSettings: new Map(),
+      stopwatchDirections: new Map(),
       stopwatch: new Map(),
+      eliminationSettings: new Map(),
+      elimination: new Map(),
       streakPreferences: new Map(),
       streakStudents: new Map(),
       sound: new Map(),
@@ -184,6 +227,8 @@
     if (isObject(primary)) {
       records.preferences.set("current", preferencesFrom(primary));
       records.stopwatchSettings.set("current", stopwatchSettingsFrom(primary));
+      records.stopwatchDirections.set("current", stopwatchDirectionsFrom(primary));
+      records.eliminationSettings.set("current", eliminationSettingsFrom(primary));
       arrayRecords(primary.multiple, "counter", validCounter).forEach((item) => records.counters.set(item.recordId, item.value));
       arrayRecords(primary.classes, "class", validClass).forEach((item) => records.classes.set(item.recordId, item.value));
       arrayRecords(primary.lists, "todo", validTodo).forEach((item) => records.todos.set(item.recordId, item.value));
@@ -192,6 +237,12 @@
         const value = { classId, records: clone(values) };
         if (!validStopwatch(value)) continue;
         records.stopwatch.set(makeRecordId("stopwatch", classId), value);
+      }
+      const rawEliminationRecords = isObject(primary.elimination?.records) ? primary.elimination.records : {};
+      for (const [classId, values] of Object.entries(rawEliminationRecords)) {
+        const value = { classId, records: clone(values) };
+        if (!validElimination(value)) continue;
+        records.elimination.set(makeRecordId("elimination", classId), value);
       }
     }
     const streak = snapshot.streak;
@@ -251,7 +302,7 @@
     const newRecords = recordMap(after);
     const descriptors = [
       ["preferences", true], ["counters", false], ["classes", false], ["todos", false],
-      ["stopwatchSettings", true], ["stopwatch", false], ["streakPreferences", true],
+      ["stopwatchSettings", true], ["stopwatchDirections", true], ["stopwatch", false], ["eliminationSettings", true], ["elimination", false], ["streakPreferences", true],
       ["streakStudents", false], ["sound", true],
     ];
     for (const [name, fixed] of descriptors) {
@@ -318,7 +369,32 @@
     if (deleted || !validStopwatchSettings(value)) throw new Error("The synchronized stopwatch settings are invalid.");
     const primary = clone(readPrimary() || {});
     const current = isObject(primary.stopwatch) ? primary.stopwatch : { records: {} };
-    primary.stopwatch = { ...current, activeClassId: value.activeClassId, recordDate: value.recordDate };
+    primary.stopwatch = {
+      ...current,
+      activeClassId: value.activeClassId,
+      recordDate: value.recordDate,
+    };
+    writePrimary(primary);
+  }
+
+  function applyStopwatchDirections(value, deleted) {
+    if (!deleted && !validStopwatchDirectionsRecord(value)) {
+      throw new Error("The synchronized stopwatch direction settings are invalid.");
+    }
+    const primary = clone(readPrimary() || {});
+    const current = isObject(primary.stopwatch) ? primary.stopwatch : { records: {} };
+    primary.stopwatch = {
+      ...current,
+      bestDirectionByClass: deleted ? {} : clone(value.bestDirectionByClass),
+    };
+    writePrimary(primary);
+  }
+
+  function applyEliminationSettings(value, deleted) {
+    if (deleted || !validEliminationSettings(value)) throw new Error("The synchronized least-outs settings are invalid.");
+    const primary = clone(readPrimary() || {});
+    const current = isObject(primary.elimination) ? primary.elimination : { records: {} };
+    primary.elimination = { ...current, activeClassId: value.activeClassId };
     writePrimary(primary);
   }
 
@@ -353,6 +429,23 @@
       records[value.classId] = clone(value.records);
     }
     primary.stopwatch = { ...stopwatch, records };
+    writePrimary(primary);
+  }
+
+  function applyElimination(recordId, value, deleted) {
+    const primary = clone(readPrimary() || {});
+    const elimination = isObject(primary.elimination) ? primary.elimination : { activeClassId: null, records: {} };
+    const records = isObject(elimination.records) ? elimination.records : {};
+    const match = Object.keys(records).find((classId) => makeRecordId("elimination", classId) === recordId);
+    if (deleted) {
+      if (match) delete records[match];
+    } else {
+      if (!validElimination(value) || makeRecordId("elimination", value.classId) !== recordId) {
+        throw new Error("The synchronized least-outs record is invalid.");
+      }
+      records[value.classId] = clone(value.records);
+    }
+    primary.elimination = { ...elimination, records };
     writePrimary(primary);
   }
 
@@ -428,6 +521,16 @@
           withRemoteWrite(() => applyStopwatchSettings(value, Boolean(metadata.deleted)));
         },
       },
+      stopwatchDirections: {
+        // Keep this separate so cached clients that expect the legacy two-key settings record keep syncing.
+        scope: APP_ID, appId: APP_ID, collection: "stopwatch-directions", recordId: "current", schemaVersion: 1,
+        validate: validStopwatchDirectionsRecord,
+        readLocal: () => recordMap(readSnapshot()).stopwatchDirections.get("current"),
+        applyRemote: (value, metadata) => {
+          if (metadata?.source !== "remote") throw new Error("Invalid automatic-sync source.");
+          withRemoteWrite(() => applyStopwatchDirections(value, Boolean(metadata.deleted)));
+        },
+      },
       stopwatch: {
         scope: APP_ID, appId: APP_ID, collection: "stopwatch-records", schemaVersion: 1,
         validate: validStopwatch,
@@ -435,6 +538,24 @@
         applyRemote: (recordId, value, metadata) => {
           if (metadata?.source !== "remote") throw new Error("Invalid automatic-sync source.");
           withRemoteWrite(() => applyStopwatch(recordId, value, Boolean(metadata.deleted)));
+        },
+      },
+      eliminationSettings: {
+        scope: APP_ID, appId: APP_ID, collection: "elimination-settings", recordId: "current", schemaVersion: 1,
+        validate: validEliminationSettings,
+        readLocal: () => recordMap(readSnapshot()).eliminationSettings.get("current"),
+        applyRemote: (value, metadata) => {
+          if (metadata?.source !== "remote") throw new Error("Invalid automatic-sync source.");
+          withRemoteWrite(() => applyEliminationSettings(value, Boolean(metadata.deleted)));
+        },
+      },
+      elimination: {
+        scope: APP_ID, appId: APP_ID, collection: "elimination-records", schemaVersion: 1,
+        validate: validElimination,
+        listLocal: () => Array.from(recordMap(readSnapshot()).elimination, ([recordId, value]) => ({ recordId, value })),
+        applyRemote: (recordId, value, metadata) => {
+          if (metadata?.source !== "remote") throw new Error("Invalid automatic-sync source.");
+          withRemoteWrite(() => applyElimination(recordId, value, Boolean(metadata.deleted)));
         },
       },
       streakPreferences: {
@@ -471,13 +592,13 @@
 
   function attachHandles(next) {
     const expected = [
-      "preferences", "counters", "classes", "todos", "stopwatchSettings", "stopwatch",
-      "streakPreferences", "streakStudents", "sound",
+      "preferences", "counters", "classes", "todos", "stopwatchSettings", "stopwatchDirections", "stopwatch",
+      "eliminationSettings", "elimination", "streakPreferences", "streakStudents", "sound",
     ];
     if (!isObject(next) || expected.some((key) => !next[key] || typeof next[key].save !== "function")) {
       throw new Error("Tally Clicker automatic sync handles are incomplete.");
     }
-    if (["counters", "classes", "todos", "stopwatch", "streakStudents"].some((key) => typeof next[key].remove !== "function")) {
+    if (["counters", "classes", "todos", "stopwatch", "elimination", "streakStudents"].some((key) => typeof next[key].remove !== "function")) {
       throw new Error("Tally Clicker automatic sync removal handles are incomplete.");
     }
     handles = next;
