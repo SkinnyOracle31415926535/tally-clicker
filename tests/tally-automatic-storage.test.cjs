@@ -5,18 +5,28 @@ const { TextDecoder, TextEncoder } = require("node:util");
 const vm = require("node:vm");
 
 class FakeStorage {
-  constructor(values = {}) { this.values = new Map(Object.entries(values)); }
+  constructor(values = {}, onWrite = null) {
+    this.values = new Map(Object.entries(values));
+    this.onWrite = onWrite;
+  }
   getItem(key) { return this.values.has(String(key)) ? this.values.get(String(key)) : null; }
-  setItem(key, value) { this.values.set(String(key), String(value)); }
-  removeItem(key) { this.values.delete(String(key)); }
+  setItem(key, value) {
+    this.values.set(String(key), String(value));
+    this.onWrite?.("set", String(key));
+  }
+  removeItem(key) {
+    this.values.delete(String(key));
+    this.onWrite?.("remove", String(key));
+  }
 }
 
 function boot(values) {
-  const localStorage = new FakeStorage(values);
+  const events = [];
+  const localStorage = new FakeStorage(values, () => events.push("write"));
   const window = {
     localStorage,
     setTimeout(task) { task(); return 1; },
-    dispatchEvent() {},
+    dispatchEvent(event) { events.push(event.type); },
   };
   const context = vm.createContext({
     window,
@@ -32,7 +42,7 @@ function boot(values) {
     readFileSync(new URL("../tally-automatic-storage.js", `file://${__filename}`), "utf8"),
     context,
   );
-  return { storage: localStorage, adapters: window.TallyStorage.makeAdapters() };
+  return { storage: localStorage, adapters: window.TallyStorage.makeAdapters(), events };
 }
 
 function primary() {
@@ -110,10 +120,11 @@ test("Tally automatic deletions remove only the selected list record", () => {
 });
 
 test("Tally automatic least-outs sync applies and removes only the addressed class record", () => {
-  const { storage, adapters } = boot({ "custom-points-counter-state-v5": JSON.stringify(primary()) });
+  const { storage, adapters, events } = boot({ "custom-points-counter-state-v5": JSON.stringify(primary()) });
   const [elimination] = adapters.elimination.listLocal();
 
   adapters.elimination.applyRemote(elimination.recordId, { ...elimination.value, records: { ava: 4 } }, { source: "remote", deleted: false });
+  assert.deepEqual(events.slice(-3), ["tally-automatic-sync-before-apply", "write", "tally-automatic-sync-applied"]);
   let saved = JSON.parse(storage.getItem("custom-points-counter-state-v5"));
   assert.deepEqual(saved.elimination.records["class-a"], { ava: 4 });
   assert.equal(saved.stopwatch.records["class-a"].ava, 1234);

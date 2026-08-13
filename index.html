@@ -235,27 +235,36 @@
       gap: 10px;
     }
 
-    .stopwatch-setting {
+    .stopwatch-direction-setting {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) minmax(148px, auto);
-      align-items: center;
-      gap: 10px;
+      gap: 8px;
       font-size: clamp(18px, 4.5vw, 26px);
       font-weight: 500;
       line-height: 1;
       text-transform: lowercase;
     }
 
-    .stopwatch-setting select {
-      min-height: 48px;
-      width: 100%;
-      padding: 6px 10px;
+    .stopwatch-direction-toggle {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .stopwatch-direction-toggle button {
+      min-height: 54px;
+      padding: 7px 9px;
       color: var(--black);
       background: var(--green);
-      border: 3px solid var(--black);
+      border: 4px solid var(--black);
       border-radius: 0;
       font: inherit;
+      line-height: 0.95;
       text-transform: lowercase;
+    }
+
+    .stopwatch-direction-toggle button.active {
+      color: var(--green);
+      background: var(--black);
     }
 
     .stopwatch-title {
@@ -441,8 +450,82 @@
       font-size: clamp(32px, 9vw, 58px);
     }
 
-    .stopwatch-roster-row:hover,
-    .stopwatch-roster-row:focus-visible {
+    .elimination-practice-footer {
+      display: none;
+    }
+
+    /* Least Outs View is deliberately read-only: the rankings stay big while
+       every score-changing control is out of reach. */
+    body.elimination-practice-view .window {
+      height: calc(100dvh - 28px);
+      min-height: 0;
+      grid-template-rows: minmax(0, 1fr);
+    }
+
+    body.elimination-practice-view .titlebar,
+    body.elimination-practice-view .mode-menu,
+    body.elimination-practice-view .statusbar {
+      display: none;
+    }
+
+    body.elimination-practice-view .content {
+      min-height: 0;
+      padding: 8px;
+    }
+
+    #eliminationPanel.practice-view {
+      min-height: 0;
+      overflow: hidden;
+      grid-template-rows: auto auto minmax(0, 1fr) auto;
+      gap: 8px;
+    }
+
+    #eliminationPanel.practice-view > :not(#eliminationViewTitle):not(#eliminationLeader):not(#eliminationRoster):not(.elimination-practice-footer) {
+      display: none !important;
+    }
+
+    .elimination-view-title {
+      display: none;
+    }
+
+    #eliminationPanel.practice-view .elimination-view-title {
+      display: block;
+      margin: 0;
+      font-size: clamp(18px, 4vw, 26px);
+      font-weight: 500;
+      line-height: 1;
+      text-transform: lowercase;
+    }
+
+    #eliminationPanel.practice-view .elimination-leader {
+      min-height: 0;
+      padding: 8px;
+      font-size: clamp(28px, 7.2vw, 52px);
+    }
+
+    #eliminationPanel.practice-view .elimination-roster {
+      min-height: 0;
+      max-height: none;
+      overflow-y: auto;
+      align-content: start;
+    }
+
+    #eliminationPanel.practice-view .elimination-row {
+      min-height: 58px;
+    }
+
+    #eliminationPanel.practice-view .elimination-practice-footer {
+      display: grid;
+    }
+
+    #eliminationPanel.practice-view .elimination-practice-footer button {
+      min-height: 54px;
+      font-size: clamp(18px, 4vw, 28px);
+      text-transform: lowercase;
+    }
+
+    button.stopwatch-roster-row:hover,
+    button.stopwatch-roster-row:focus-visible {
       color: var(--green);
       background: var(--black);
       outline: none;
@@ -2510,6 +2593,10 @@
         height: calc(100dvh - 12px);
       }
 
+      body.elimination-practice-view .window {
+        height: calc(100dvh - 12px);
+      }
+
       .multiple-controls {
         grid-template-columns: 1fr;
       }
@@ -2973,13 +3060,13 @@
             <div class="dialog-label">active class</div>
             <div id="stopwatchClassName" class="stopwatch-class-name">no class selected</div>
             <p id="stopwatchClassNote" class="stopwatch-note">choose a saved class to start.</p>
-            <label class="stopwatch-setting" for="stopwatchBestDirection">
-              <span>best time</span>
-              <select id="stopwatchBestDirection">
-                <option value="lowest">lowest time wins</option>
-                <option value="highest">highest time wins</option>
-              </select>
-            </label>
+            <div class="stopwatch-direction-setting">
+              <span id="stopwatchDirectionLabel">best time</span>
+              <div class="stopwatch-direction-toggle" role="group" aria-labelledby="stopwatchDirectionLabel">
+                <button id="stopwatchLowestTimeButton" class="active" type="button" aria-pressed="true">lowest time wins</button>
+                <button id="stopwatchHighestTimeButton" type="button" aria-pressed="false">highest time wins</button>
+              </div>
+            </div>
           </div>
           <div class="stopwatch-actions">
             <button id="startStopwatchPlay" class="stopwatch-play" type="button">play</button>
@@ -3003,11 +3090,16 @@
           </div>
         </div>
         <div id="eliminationClassSlot" class="class-roster-slot"></div>
-        <div id="eliminationLeader" class="display label-display elimination-leader">choose a class</div>
+        <p id="eliminationViewTitle" class="elimination-view-title">least outs</p>
+        <div id="eliminationLeader" class="display label-display elimination-leader" tabindex="-1">choose a class</div>
         <div id="eliminationRoster" class="stopwatch-roster elimination-roster"></div>
         <div class="stopwatch-actions">
+          <button id="eliminationViewButton" class="stopwatch-play" type="button" aria-pressed="false">view</button>
           <button id="undoEliminationOut" type="button" disabled>undo last out</button>
           <button id="resetEliminationOuts" class="remove-action stopwatch-reset-times" type="button" disabled>reset outs</button>
+        </div>
+        <div id="eliminationPracticeFooter" class="elimination-practice-footer" hidden>
+          <button id="exitEliminationView" class="hold-to-exit" type="button" aria-label="exit leaderboard view; touch users hold to exit">hold to exit view</button>
         </div>
       </section>
     </section>
@@ -3435,7 +3527,8 @@
     const statusbar = document.getElementById("statusbar");
     const stopwatchClassName = document.getElementById("stopwatchClassName");
     const stopwatchClassNote = document.getElementById("stopwatchClassNote");
-    const stopwatchBestDirection = document.getElementById("stopwatchBestDirection");
+    const stopwatchLowestTimeButton = document.getElementById("stopwatchLowestTimeButton");
+    const stopwatchHighestTimeButton = document.getElementById("stopwatchHighestTimeButton");
     const startStopwatchPlay = document.getElementById("startStopwatchPlay");
     const resetStopwatchTimes = document.getElementById("resetStopwatchTimes");
     const stopwatchRosterDialog = document.getElementById("stopwatchRosterDialog");
@@ -3459,10 +3552,14 @@
     const stopwatchTimerBack = document.getElementById("stopwatchTimerBack");
     const eliminationClassName = document.getElementById("eliminationClassName");
     const eliminationClassNote = document.getElementById("eliminationClassNote");
+    const eliminationViewTitle = document.getElementById("eliminationViewTitle");
     const eliminationLeader = document.getElementById("eliminationLeader");
     const eliminationRoster = document.getElementById("eliminationRoster");
+    const eliminationViewButton = document.getElementById("eliminationViewButton");
     const undoEliminationOut = document.getElementById("undoEliminationOut");
     const resetEliminationOuts = document.getElementById("resetEliminationOuts");
+    const eliminationPracticeFooter = document.getElementById("eliminationPracticeFooter");
+    const exitEliminationView = document.getElementById("exitEliminationView");
 
     let state = {
       mode: "single",
@@ -3527,7 +3624,11 @@
     let stopwatchReviewConfirmationTimer = null;
     let stopwatchHistoryConfirmationAction = null;
     let stopwatchHistoryConfirmationTimer = null;
-    let eliminationLastOut = null;
+    const ELIMINATION_HISTORY_LIMIT = 30;
+    const eliminationHistoryByClass = new Map();
+    let isEliminationViewing = false;
+    let eliminationViewExitTimer = null;
+    let eliminationViewPointerHoldActive = false;
     let pendingStopwatchBestDirection = null;
     let pendingStopwatchDirectionClassId = null;
     let draggedSkillId = null;
@@ -4558,9 +4659,8 @@
 
     function replaceSharedClasses(sharedClasses) {
       const selectedClassId = state.selectedClassId;
-      if (eliminationLastOut && sharedClasses.some((savedClass) => savedClass.id === eliminationLastOut.classId)) {
-        eliminationLastOut = null;
-      }
+      state.classes.filter(isSharedClass).forEach((savedClass) => clearEliminationHistory(savedClass.id));
+      sharedClasses.forEach((savedClass) => clearEliminationHistory(savedClass.id));
       const tallyOnlyClasses = state.classes.filter((savedClass) => !isSharedClass(savedClass));
       state.classes = [...sharedClasses, ...tallyOnlyClasses];
       state.selectedClassId = state.classes.some((savedClass) => savedClass.id === selectedClassId)
@@ -4662,7 +4762,7 @@
     }
 
     function loadState() {
-      eliminationLastOut = null;
+      clearEliminationHistory();
       let hasSavedState = false;
 
       try {
@@ -5550,6 +5650,7 @@
       let addedToStreak = 0;
       if (existingClass) {
         const addedStudents = getAddedStudentNames(existingClass.students, students);
+        clearEliminationHistory(existingClass.id);
         existingClass.neededByStudent = normalizeNeededByStudent(existingClass.neededByStudent, students);
         existingClass.name = name;
         existingClass.students = students;
@@ -6119,6 +6220,10 @@
       return getStopwatchBestDirection(classId) === "highest" ? "highest time wins" : "lowest time wins";
     }
 
+    function getStopwatchDirectionButton(direction) {
+      return direction === "highest" ? stopwatchHighestTimeButton : stopwatchLowestTimeButton;
+    }
+
     function isBetterStopwatchTime(nextTime, previousTime, classId) {
       return getStopwatchBestDirection(classId) === "highest"
         ? nextTime > previousTime
@@ -6390,8 +6495,13 @@
         : savedClass
           ? "add names to this saved class below."
           : "choose or create a saved class below.";
-      stopwatchBestDirection.value = savedClass ? getStopwatchBestDirection(savedClass.id) : "lowest";
-      stopwatchBestDirection.disabled = !savedClass;
+      const direction = savedClass ? getStopwatchBestDirection(savedClass.id) : "";
+      [[stopwatchLowestTimeButton, "lowest"], [stopwatchHighestTimeButton, "highest"]].forEach(([button, value]) => {
+        const active = direction === value;
+        button.classList.toggle("active", active);
+        button.setAttribute("aria-pressed", String(active));
+        button.disabled = !savedClass;
+      });
       startStopwatchPlay.disabled = !savedClass?.students.length;
       resetStopwatchTimes.disabled = !hasSavedTimes;
       renderStopwatchHistoryControls();
@@ -6588,6 +6698,30 @@
       return state.classes[0] || null;
     }
 
+    function getEliminationHistory(classId) {
+      return eliminationHistoryByClass.get(classId) || [];
+    }
+
+    function clearEliminationHistory(classId) {
+      if (classId) {
+        eliminationHistoryByClass.delete(classId);
+        return;
+      }
+      eliminationHistoryByClass.clear();
+    }
+
+    function rememberEliminationOut(change) {
+      const history = getEliminationHistory(change.classId);
+      history.push(change);
+      if (history.length > ELIMINATION_HISTORY_LIMIT) history.splice(0, history.length - ELIMINATION_HISTORY_LIMIT);
+      eliminationHistoryByClass.set(change.classId, history);
+    }
+
+    function getLatestEliminationOut(classId) {
+      const history = getEliminationHistory(classId);
+      return history[history.length - 1] || null;
+    }
+
     function getEliminationRecords(classId) {
       if (!state.elimination.records[classId]) state.elimination.records[classId] = {};
       return state.elimination.records[classId];
@@ -6624,9 +6758,66 @@
       return leaders.length + " tied for first · " + formatEliminationOuts(fewestOuts);
     }
 
-    function renderEliminationRoster(savedClass, entries, focusStudentName = "") {
+    function isEliminationPracticeView() {
+      return state.mode === "elimination" && isEliminationViewing;
+    }
+
+    function cancelEliminationViewExitHold() {
+      window.clearTimeout(eliminationViewExitTimer);
+      eliminationViewExitTimer = null;
+      exitEliminationView.classList.remove("holding");
+      exitEliminationView.textContent = "hold to exit view";
+    }
+
+    function renderEliminationViewMode(savedClass) {
+      const isPracticeView = Boolean(savedClass?.students.length) && isEliminationPracticeView();
+      if (!isPracticeView) {
+        isEliminationViewing = false;
+        cancelEliminationViewExitHold();
+      }
+      eliminationViewButton.classList.toggle("is-active", isPracticeView);
+      eliminationViewButton.setAttribute("aria-pressed", String(isPracticeView));
+      panels.elimination.classList.toggle("practice-view", isPracticeView);
+      document.body.classList.toggle("elimination-practice-view", isPracticeView);
+      eliminationPracticeFooter.hidden = !isPracticeView;
+      return isPracticeView;
+    }
+
+    function setEliminationViewing(viewing) {
+      const savedClass = getEliminationClass();
+      if (viewing && !savedClass?.students.length) {
+        statusbar.textContent = savedClass ? "add names to this class first" : "choose a saved class first";
+        return;
+      }
+      const wasViewing = isEliminationViewing;
+      isEliminationViewing = Boolean(viewing);
+      if (isEliminationViewing && !wasViewing) eliminationRoster.scrollTop = 0;
+      if (!isEliminationViewing) cancelEliminationViewExitHold();
+      renderElimination();
+      statusbar.textContent = isEliminationViewing ? "least-outs leaderboard view" : "least outs ready";
+      if (isEliminationViewing) window.requestAnimationFrame(() => eliminationLeader.focus());
+    }
+
+    function exitEliminationViewAfterHold() {
+      cancelEliminationViewExitHold();
+      eliminationViewPointerHoldActive = false;
+      if (!isEliminationPracticeView()) return;
+      setEliminationViewing(false);
+      window.requestAnimationFrame(() => eliminationViewButton.focus());
+    }
+
+    function beginEliminationViewExitHold() {
+      if (!isEliminationPracticeView() || eliminationViewExitTimer) return;
+      exitEliminationView.classList.add("holding");
+      exitEliminationView.textContent = "keep holding...";
+      eliminationViewExitTimer = window.setTimeout(exitEliminationViewAfterHold, 1200);
+    }
+
+    function renderEliminationRoster(savedClass, entries, focusStudentName = "", isView = false) {
       const scrollTop = eliminationRoster.scrollTop;
       eliminationRoster.replaceChildren();
+      if (isView) eliminationRoster.setAttribute("role", "list");
+      else eliminationRoster.removeAttribute("role");
       if (!savedClass?.students.length) {
         const empty = document.createElement("p");
         empty.className = "dialog-description";
@@ -6636,11 +6827,12 @@
       }
 
       entries.forEach((entry) => {
-        const row = document.createElement("button");
+        const row = document.createElement(isView ? "div" : "button");
         const name = document.createElement("span");
         const rank = document.createElement("span");
         const record = document.createElement("span");
-        row.type = "button";
+        if (!isView) row.type = "button";
+        else row.setAttribute("role", "listitem");
         row.className = "stopwatch-roster-row elimination-row";
         row.dataset.eliminationStudent = normalizeMultipleName(entry.name);
         name.className = "stopwatch-student-name";
@@ -6649,13 +6841,13 @@
         name.textContent = entry.name;
         rank.textContent = "#" + entry.rank;
         record.textContent = formatEliminationOuts(entry.outs);
-        row.setAttribute("aria-label", entry.name + ", rank " + entry.rank + ", " + formatEliminationOuts(entry.outs) + ". Tap to record an out.");
+        row.setAttribute("aria-label", entry.name + ", rank " + entry.rank + ", " + formatEliminationOuts(entry.outs) + (isView ? "." : ". Tap to record an out."));
         row.append(name, rank, record);
-        row.addEventListener("click", () => recordEliminationOut(entry.name));
+        if (!isView) row.addEventListener("click", () => recordEliminationOut(entry.name));
         eliminationRoster.appendChild(row);
       });
       eliminationRoster.scrollTop = scrollTop;
-      if (focusStudentName) {
+      if (focusStudentName && !isView) {
         const focusKey = normalizeMultipleName(focusStudentName);
         window.requestAnimationFrame(() => Array.from(eliminationRoster.querySelectorAll("button")).find((row) => row.dataset.eliminationStudent === focusKey)?.focus({ preventScroll: true }));
       }
@@ -6665,26 +6857,33 @@
       const savedClass = getEliminationClass();
       const entries = getEliminationEntries(savedClass);
       const hasOuts = entries.some((entry) => entry.outs > 0);
+      const isView = renderEliminationViewMode(savedClass);
+      const lastOut = savedClass ? getLatestEliminationOut(savedClass.id) : null;
       eliminationClassName.textContent = savedClass?.name || "no class selected";
       eliminationClassNote.textContent = savedClass?.students.length
         ? savedClass.students.length + " kids ready. tap the one who got out; everybody stays in."
         : savedClass
           ? "add names to this saved class below."
           : "choose or create a saved class below.";
-      eliminationLeader.textContent = getEliminationLeader(entries);
-      undoEliminationOut.disabled = !eliminationLastOut || eliminationLastOut.classId !== savedClass?.id || !savedClass?.students.includes(eliminationLastOut.name);
-      resetEliminationOuts.disabled = !hasOuts;
-      renderEliminationRoster(savedClass, entries, focusStudentName);
+      const leader = getEliminationLeader(entries);
+      eliminationViewTitle.textContent = savedClass ? "least outs · " + savedClass.name : "least outs";
+      eliminationLeader.textContent = leader;
+      eliminationLeader.setAttribute("aria-label", savedClass ? savedClass.name + " least outs. " + leader : leader);
+      eliminationViewButton.disabled = !savedClass?.students.length;
+      undoEliminationOut.disabled = isView || !lastOut || !savedClass?.students.includes(lastOut.name);
+      resetEliminationOuts.disabled = isView || !hasOuts;
+      renderEliminationRoster(savedClass, entries, focusStudentName, isView);
     }
 
     function recordEliminationOut(studentName) {
+      if (isEliminationPracticeView()) return;
       const savedClass = getEliminationClass();
       if (!savedClass || !savedClass.students.includes(studentName)) return;
       const records = getEliminationRecords(savedClass.id);
       const key = normalizeMultipleName(studentName);
       const previousOuts = records[key] || 0;
       records[key] = previousOuts + 1;
-      eliminationLastOut = { classId: savedClass.id, key, name: studentName, previousOuts, recordedOuts: records[key] };
+      rememberEliminationOut({ classId: savedClass.id, key, name: studentName, previousOuts, recordedOuts: records[key] });
       saveState();
       renderElimination(studentName);
       playSound("plus", records[key]);
@@ -6692,20 +6891,28 @@
     }
 
     function undoEliminationOutChange() {
-      const previous = eliminationLastOut;
-      const savedClass = state.classes.find((candidate) => candidate.id === previous?.classId);
-      if (!previous || !savedClass || !savedClass.students.includes(previous.name)) return;
-      const records = getEliminationRecords(previous.classId);
-      if ((records[previous.key] || 0) !== previous.recordedOuts) {
-        eliminationLastOut = null;
+      const savedClass = getEliminationClass();
+      const previous = savedClass ? getLatestEliminationOut(savedClass.id) : null;
+      if (!previous) return;
+      if (!savedClass || !savedClass.students.includes(previous.name)) {
+        clearEliminationHistory(previous.classId);
         renderElimination();
-        statusbar.textContent = "undo is no longer available after scores changed";
+        statusbar.textContent = "scores changed; undo history cleared";
+        return;
+      }
+      const records = state.elimination.records[previous.classId];
+      if ((records?.[previous.key] || 0) !== previous.recordedOuts) {
+        clearEliminationHistory(previous.classId);
+        renderElimination();
+        statusbar.textContent = "scores changed; undo history cleared";
         return;
       }
       if (previous.previousOuts > 0) records[previous.key] = previous.previousOuts;
       else delete records[previous.key];
       if (!Object.keys(records).length) delete state.elimination.records[previous.classId];
-      eliminationLastOut = null;
+      const history = getEliminationHistory(previous.classId);
+      history.pop();
+      if (!history.length) eliminationHistoryByClass.delete(previous.classId);
       saveState();
       renderElimination(previous.name);
       playSound("clear");
@@ -6716,7 +6923,7 @@
       const savedClass = getEliminationClass();
       if (!savedClass || !state.elimination.records[savedClass.id]) return;
       delete state.elimination.records[savedClass.id];
-      if (eliminationLastOut?.classId === savedClass.id) eliminationLastOut = null;
+      clearEliminationHistory(savedClass.id);
       saveState();
       renderElimination();
       playSound("clear");
@@ -6726,7 +6933,7 @@
 
     function unlinkEliminationClass(classId) {
       delete state.elimination.records[classId];
-      if (eliminationLastOut?.classId === classId) eliminationLastOut = null;
+      clearEliminationHistory(classId);
       if (state.elimination.activeClassId === classId) {
         state.elimination.activeClassId = state.classes[0]?.id || null;
       }
@@ -6751,6 +6958,10 @@
       streakCounter.cancelConfirmations();
       if (stopwatchPlaying && mode !== "stopwatch") exitStopwatchPlay();
       if (mode !== "list") isListViewing = false;
+      if (mode !== "elimination") {
+        isEliminationViewing = false;
+        cancelEliminationViewExitHold();
+      }
       state.mode = mode;
       isMultipleEditing = mode === "multiple";
       if (mode === "streak") streakCounter.setEditing(true);
@@ -7112,7 +7323,7 @@
       renderStopwatch();
       playSound("clear");
       statusbar.textContent = savedClass.name + " set to " + getStopwatchBestDirectionLabel(classId) + "; old times cleared";
-      window.requestAnimationFrame(() => stopwatchBestDirection.focus());
+      window.requestAnimationFrame(() => getStopwatchDirectionButton(direction).focus());
     }
 
     function renderResetDialog() {
@@ -7510,7 +7721,8 @@
       if (!todoRedoButton.disabled) armOrConfirmTodoAction("redo", "redo", redoTodoChange);
     });
     closeCelebration.addEventListener("click", hideTodoCelebration);
-    stopwatchBestDirection.addEventListener("change", () => setStopwatchBestDirection(stopwatchBestDirection.value));
+    stopwatchLowestTimeButton.addEventListener("click", () => setStopwatchBestDirection("lowest"));
+    stopwatchHighestTimeButton.addEventListener("click", () => setStopwatchBestDirection("highest"));
     startStopwatchPlay.addEventListener("click", openStopwatchRoster);
     resetStopwatchTimes.addEventListener("click", () => openResetDialog("stopwatch"));
     stopwatchPlayUndo.addEventListener("click", () => armOrConfirmStopwatchHistoryAction("undo"));
@@ -7538,6 +7750,48 @@
       if (event.key === "Enter" || event.key === " ") cancelStopwatchExitHold();
     });
     stopwatchHoldExit.addEventListener("click", (event) => event.preventDefault());
+    eliminationViewButton.addEventListener("click", () => setEliminationViewing(true));
+    exitEliminationView.addEventListener("pointerdown", (event) => {
+      event.preventDefault();
+      eliminationViewPointerHoldActive = true;
+      exitEliminationView.setPointerCapture?.(event.pointerId);
+      beginEliminationViewExitHold();
+    });
+    exitEliminationView.addEventListener("pointerup", cancelEliminationViewExitHold);
+    ["pointercancel", "pointerleave", "lostpointercapture"].forEach((eventName) => {
+      exitEliminationView.addEventListener(eventName, cancelEliminationViewExitHold);
+      exitEliminationView.addEventListener(eventName, () => {
+        eliminationViewPointerHoldActive = false;
+      });
+    });
+    exitEliminationView.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      if (!event.repeat) beginEliminationViewExitHold();
+    });
+    exitEliminationView.addEventListener("keyup", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      cancelEliminationViewExitHold();
+      exitEliminationViewAfterHold();
+    });
+    exitEliminationView.addEventListener("click", (event) => {
+      event.preventDefault();
+      if (eliminationViewPointerHoldActive) {
+        eliminationViewPointerHoldActive = false;
+        return;
+      }
+      exitEliminationViewAfterHold();
+    });
+    window.addEventListener("blur", () => {
+      eliminationViewPointerHoldActive = false;
+      cancelEliminationViewExitHold();
+    });
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) return;
+      eliminationViewPointerHoldActive = false;
+      cancelEliminationViewExitHold();
+    });
     undoEliminationOut.addEventListener("click", undoEliminationOutChange);
     resetEliminationOuts.addEventListener("click", () => openResetDialog("elimination"));
 
@@ -8717,6 +8971,9 @@
     streakCounter.load();
     render();
     loadStudentShufflerClasses({ announce: true });
+    window.addEventListener("tally-automatic-sync-before-apply", () => {
+      clearEliminationHistory();
+    });
     window.addEventListener("tally-automatic-sync-applied", () => {
       loadState();
       streakCounter.load();

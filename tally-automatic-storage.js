@@ -279,6 +279,9 @@
   }
 
   function withRemoteWrite(task) {
+    // Tell the page before storage changes so transient local undo stacks cannot
+    // replay against a just-arrived remote snapshot.
+    window.dispatchEvent(new CustomEvent("tally-automatic-sync-before-apply"));
     remoteWriteDepth += 1;
     try {
       task();
